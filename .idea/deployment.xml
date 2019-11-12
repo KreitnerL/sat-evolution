@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="w0060@atcremers55.informatik.tu-muenchen.de:58022" createEmptyFolders="true">
+    <serverData>
+      <paths name="w0060@atcremers55.informatik.tu-muenchen.de:58022">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/usr/prakt/w0060/SAT" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="w0060@atcremers55.informatik.tu-muenchen.de:58022 (1)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/usr/prakt/w0060/SAT" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/DOCS" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

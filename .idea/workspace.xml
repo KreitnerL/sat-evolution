@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="4a36da38-a90d-4cbe-b741-42edfa0ebaba" name="Default Changelist" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ProjectId" id="1TKo7QVPcDPOwbGYxU0uyQ46ic5" />
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.mappings" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.symlinks" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.date" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.permissions" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/DOCS" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/presentation/gene-mutation" />
+      <recent name="$PROJECT_DIR$/presentation/vanila" />
+      <recent name="$PROJECT_DIR$/presentation/crossover" />
+      <recent name="$PROJECT_DIR$/presentation/selection" />
+      <recent name="$PROJECT_DIR$/presentation/individual-mutation" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Gamer\Dropbox\Studium Info\Bachelor Practikum - Deeplearning\SAT problems" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/training" />
+      <recent name="$PROJECT_DIR$/presentation/vanila" />
+      <recent name="$PROJECT_DIR$/examples-75" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Python.hello_world">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="own" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="hello_world" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="own" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/hello_world.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plot_mutation_rates" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="own" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/training/plot_mutation_rates.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="solvers" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="own" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/solvers" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/solvers/solvers.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="train" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="own" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/training/train.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="vanila" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="own" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/training/validation.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.hello_world" />
+        <item itemvalue="Python.plot_mutation_rates" />
+        <item itemvalue="Python.train" />
+        <item itemvalue="Python.solvers" />
+        <item itemvalue="Python.vanila" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4a36da38-a90d-4cbe-b741-42edfa0ebaba" name="Default Changelist" comment="" />
+      <created>1562229820316</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1562229820316</updated>
+      <workItem from="1562229821761" duration="6701000" />
+      <workItem from="1562240626852" duration="15923000" />
+      <workItem from="1562403398814" duration="21025000" />
+      <workItem from="1562507469317" duration="1592000" />
+      <workItem from="1562529979445" duration="5035000" />
+      <workItem from="1562661525514" duration="15000" />
+      <workItem from="1562741791449" duration="9567000" />
+      <workItem from="1562764626959" duration="1621000" />
+      <workItem from="1562766510752" duration="11000" />
+      <workItem from="1562828657845" duration="20070000" />
+      <workItem from="1563093842647" duration="25066000" />
+      <workItem from="1563280341241" duration="216000" />
+      <workItem from="1563289739658" duration="1169000" />
+      <workItem from="1563453951887" duration="3734000" />
+      <workItem from="1563702356047" duration="5058000" />
+      <workItem from="1563865603059" duration="8943000" />
+      <workItem from="1563884287611" duration="3216000" />
+      <workItem from="1563897396649" duration="393000" />
+      <workItem from="1563899427121" duration="967000" />
+      <workItem from="1565019054740" duration="178000" />
+      <workItem from="1565019370202" duration="10847000" />
+      <workItem from="1565094749588" duration="162000" />
+      <workItem from="1565117980106" duration="1336000" />
+      <workItem from="1565294617633" duration="2512000" />
+      <workItem from="1565378758112" duration="1319000" />
+      <workItem from="1565549566994" duration="3593000" />
+      <workItem from="1565554577369" duration="530000" />
+      <workItem from="1565592841955" duration="699000" />
+      <workItem from="1565601517457" duration="723000" />
+      <workItem from="1565611079229" duration="2470000" />
+      <workItem from="1565682835901" duration="9353000" />
+      <workItem from="1565724501853" duration="132000" />
+      <workItem from="1565785096696" duration="1036000" />
+      <workItem from="1565800033195" duration="1187000" />
+      <workItem from="1565805381302" duration="66000" />
+      <workItem from="1565856635113" duration="1722000" />
+      <workItem from="1565902046237" duration="278000" />
+      <workItem from="1565944338488" duration="6196000" />
+      <workItem from="1566035341687" duration="5099000" />
+      <workItem from="1566121074071" duration="22301000" />
+      <workItem from="1566322700099" duration="1211000" />
+      <workItem from="1566412844887" duration="1180000" />
+      <workItem from="1566495745788" duration="5292000" />
+      <workItem from="1567325169997" duration="12056000" />
+      <workItem from="1567443965339" duration="62000" />
+      <workItem from="1567784656792" duration="2979000" />
+      <workItem from="1567883143047" duration="2771000" />
+      <workItem from="1567936908725" duration="8885000" />
+      <workItem from="1567958010288" duration="7450000" />
+      <workItem from="1568011436647" duration="3316000" />
+      <workItem from="1568020125542" duration="2272000" />
+      <workItem from="1568482229614" duration="2779000" />
+      <workItem from="1568486827659" duration="8961000" />
+      <workItem from="1568718836974" duration="4773000" />
+      <workItem from="1568736763334" duration="1620000" />
+      <workItem from="1568788111676" duration="133000" />
+      <workItem from="1568811147966" duration="1306000" />
+      <workItem from="1568879125949" duration="1501000" />
+      <workItem from="1568892880948" duration="1617000" />
+      <workItem from="1568985189022" duration="3829000" />
+      <workItem from="1573217987268" duration="2516000" />
+      <workItem from="1573220591437" duration="566000" />
+      <workItem from="1573221265926" duration="1590000" />
+      <workItem from="1573223274268" duration="173000" />
+      <workItem from="1573223465327" duration="10950000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/own$problem_loader.coverage" NAME="problem_loader Coverage Results" MODIFIED="1562248065822" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/sat" />
+    <SUITE FILE_PATH="coverage/own$train.coverage" NAME="train Coverage Results" MODIFIED="1568720940870" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/own$plot_fitness_factors.coverage" NAME="plot_fitness_factors Coverage Results" MODIFIED="1567942603786" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SAT_problems$hello_world.coverage" NAME="hello_world Coverage Results" MODIFIED="1573228516864" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SAT_problems$plot_mutation_rates.coverage" NAME="plot_mutation_rates Coverage Results" MODIFIED="1573224834558" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/own$solvers.coverage" NAME="solvers Coverage Results" MODIFIED="1568720582559" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/solvers" />
+    <SUITE FILE_PATH="coverage/own$vanila.coverage" NAME="vanila Coverage Results" MODIFIED="1568491468770" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/own$plot_mutation_rates.coverage" NAME="plot_mutation_rates Coverage Results" MODIFIED="1568893375331" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/own$startegies.coverage" NAME="startegies Coverage Results" MODIFIED="1562742059866" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/strategies" />
+    <SUITE FILE_PATH="coverage/own$do_stuff.coverage" NAME="do_stuff Coverage Results" MODIFIED="1566500142247" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>
