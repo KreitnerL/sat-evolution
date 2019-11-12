@@ -1,6 +1,8 @@
 from sat.problem_loader import load_problems
 
 batch_size = 32
+pre_training_rounds = 5
+training_rounds = 10
 
 def train_problem_set(solver, problems, generations, output, optimize_every):
     solver.training = True
@@ -69,9 +71,6 @@ def validate(solver, problems, generations, output):
         for i in range(0, generations):
             f.write(str(mbf[i]) + '\n')
             f.flush()
-
-pre_training_rounds = 5
-training_rounds = 10
 
 def pre_train_solver(solver, dir):
     # pre train with easy examples

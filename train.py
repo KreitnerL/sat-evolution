@@ -18,42 +18,18 @@ outdir = sys.argv[2]
 
 population_size = 100
 
-if solver_arg == 'gene':
-    solver = SolverWithGeneMutationControl(encoder, population_size, num_hidden_layers=3)
+solverMap = {
+    'gene': SolverWithGeneMutationControl(encoder, population_size, num_hidden_layers=3),
+    'individual': SolverWithIndividualMutationControl(encoder, population_size, num_hidden_layers=3),
+    'crossover': SolverWithFitnessShapingCrossover(encoder, population_size, num_hidden_layers=3),
+    'selection': SolverWithFitnessShapingSelection(encoder, population_size, num_hidden_layers=3)
+}
+
+solver = solverMap.get(solver_arg, None)
+if solver is not None:
     if os.path.isfile(outdir + "baseline"):
         print("loading baseline")
         solver.load_weights(outdir + "baseline")
-
-    solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
-    pre_train_solver(solver, outdir)
-    train_solver(solver, outdir)
-
-if solver_arg == 'individual':
-    solver = SolverWithIndividualMutationControl(encoder, population_size, num_hidden_layers=3)
-    if os.path.isfile(outdir + "baseline"):
-        print("loading baseline")
-        solver.load_weights(outdir + "baseline")
-
-    solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
-    pre_train_solver(solver, outdir)
-    train_solver(solver, outdir)
-
-if solver_arg == 'crossover':
-    solver = SolverWithFitnessShapingCrossover(encoder, population_size, num_hidden_layers=3)
-    if os.path.isfile(outdir + "baseline"):
-        print("loading baseline")
-        solver.load_weights(outdir + "baseline")
-
-    solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
-    pre_train_solver(solver, outdir)
-    train_solver(solver, outdir)
-
-if solver_arg == 'selection':
-    solver = SolverWithFitnessShapingSelection(encoder, population_size, num_hidden_layers=3)
-    if os.path.isfile(outdir + "baseline"):
-        print("loading baseline")
-        solver.load_weights(outdir + "baseline")
-
     solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
     pre_train_solver(solver, outdir)
     train_solver(solver, outdir)

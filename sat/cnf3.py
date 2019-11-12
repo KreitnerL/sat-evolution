@@ -12,7 +12,7 @@ class CNF3(object):
         self.participation = None
 
         with open(path) as f:
-            index = 0
+            clause_index = 0
             for line in f:
                 if line[0] == 'c':
                     continue
@@ -28,18 +28,16 @@ class CNF3(object):
                     if var_str == '%':
                         return
 
-                    var = int(var_str)
-                    if var == 0:
+                    var_index = int(var_str)
+                    if var_index == 0:
                         break
 
-                    if var > 0:
-                        var -= 1  # 1 indexing
-                        self.mat[index][var] = 1
+                    if var_index > 0:
+                        self.mat[clause_index][var_index-1] = 1
                     else:
-                        var += 1  # 1 indexing
-                        self.mat[index][-var] = -1
+                        self.mat[clause_index][-var_index+1] = -1
 
-                index += 1
+                clause_index += 1
 
     def evaluate(self, solution, get_unsatisfied=False):
         """
