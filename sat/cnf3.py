@@ -35,7 +35,7 @@ class CNF3(object):
                     if var_index > 0:
                         self.mat[0][clause_index][var_index-1] = 1
                     else:
-                        self.mat[1][clause_index][-var_index+1] = 1
+                        self.mat[1][clause_index][-var_index-1] = 1
 
                 clause_index += 1
 
@@ -46,7 +46,7 @@ class CNF3(object):
         contain variable i
         """
 
-        result = np.bitwise_and(self.mat, solution)
+        result = np.array([np.bitwise_and(self.mat[0], solution[0]), np.bitwise_and(self.mat[1], solution[1])])
         # flatten to a 2D Matrix
         result2D = np.bitwise_or(result[0], result[1])
 
@@ -64,9 +64,7 @@ class CNF3(object):
     # for each variable, number of clauses that contain it
     def get_participation(self):
         if self.participation is None:
-            mat = self.mat.copy()
-            mat[mat == -1] = 1
-            self.participation = mat.sum(0)
+            self.participation = np.bitwise_or(self.mat[0], self.mat[1]).sum(0)
 
         return self.participation
 

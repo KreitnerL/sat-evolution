@@ -46,10 +46,14 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
                     -problem weight limits
                     -remaining number of generations
         """
+        # Dimensions of each feature: 1 x #Individuals x 2 x #Variables (e.g. 1x100x2x20)
+
         # Feature 0 : Solution of each individual
         population_data = torch.tensor(
             [solution.get_assignments() for solution in population.get_solutions()]
             ).unsqueeze(0).float()
+        
+        print(population_data.size())
 
         # Feature 1 : Inverse solution of each individual
         population_inverse = torch.tensor(
@@ -57,41 +61,50 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
             ).unsqueeze(0).float()
 
         # Feature 2 : Fitness of each individual
-        population_fitness = torch.tensor([[solution.get_score() for solution in population.get_solutions()]])
-        population_fitness = population_fitness.transpose(0, 1)
+        population_fitness = torch.tensor([[[solution.get_score()],[solution.get_score()]] for solution in population.get_solutions()])
         population_fitness = population_fitness.expand_as(population_data).float()
+        print(population_fitness.size())
 
         # Feature 3 : Participation in clauses:
         variable_participation = torch.tensor(
-            [population.cnf.get_participation() / population.cnf.num_clauses for solution in population.get_solutions()]
+            [np.tile(population.cnf.get_participation() / population.cnf.num_clauses, (2,1)) for solution in population.get_solutions()]
             ).unsqueeze(0).float()
+        print(variable_participation.size())
 
         # Feature 4 : Participation in unsatistfied clauses
         in_unstaisfied = torch.tensor(
             [solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]
             ).unsqueeze(0).float()
 
+        print(in_unstaisfied.size())
+
         # Feature 5 : Number of clauses
         num_clauses = torch.tensor(population.cnf.num_clauses).float()
         num_clauses = num_clauses.expand_as(population_data)
+
+        print(num_clauses.size())
 
         # Feature 6 : Number of variables
         num_vars = torch.tensor(population.cnf.num_variables).float()
         num_vars = num_vars.expand_as(population_data)
 
+        print(num_vars.size())
+
         # Feature 7: Generations_left
         generations_left = torch.tensor(generations_left).float()
         generations_left = generations_left.expand_as(population_data)
+
+        print(generations_left.size())
 
         # Create #Features x #individuals x individual_length tensor
         state = torch.cat([population_data,
                            population_inverse,
                            in_unstaisfied,
-                            population_fitness,
+                           population_fitness,
                            num_clauses,
                            num_vars,
                            variable_participation,
-                            generations_left], 0)
+                           generations_left], 0)
 
 
         # Add batch_dimension of size 1
