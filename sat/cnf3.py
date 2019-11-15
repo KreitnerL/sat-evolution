@@ -20,7 +20,7 @@ class CNF3(object):
                 if line[0] == 'p':
                     split = line.strip().replace("  ", " ").split(" ")
                     self.num_variables, self.num_clauses = int(split[2]), int(split[3])
-                    self.mat = np.zeros((self.num_clauses, self.num_variables), np.int8)
+                    self.mat = np.zeros((2, self.num_clauses, self.num_variables), np.int8)
                     continue
 
                 split = line.strip().replace("  ", " ").split(" ")
@@ -33,9 +33,9 @@ class CNF3(object):
                         break
 
                     if var_index > 0:
-                        self.mat[clause_index][var_index-1] = 1
+                        self.mat[0][clause_index][var_index-1] = 1
                     else:
-                        self.mat[clause_index][-var_index+1] = -1
+                        self.mat[1][clause_index][-var_index+1] = 1
 
                 clause_index += 1
 
@@ -46,20 +46,18 @@ class CNF3(object):
         contain variable i
         """
 
-        result = np.multiply(self.mat, -1 * solution)
+        result = np.bitwise_and(self.mat, solution)
+        # flatten to a 2D Matrix
+        result2D = np.bitwise_or(result[0], result[1])
 
         # Count satisfied
-        result_satisfied = result.copy()
-        result_satisfied[result_satisfied > 0] = 0
-        satisfied = np.count_nonzero(result_satisfied.sum(1))
+        satisfied_clauses = np.bitwise_or.reduce(result2D,1)
+        satisfied = np.count_nonzero(satisfied_clauses)
 
         # Get variables in unsatisfied clauses
         unsatisfied = None
         if get_unsatisfied:
-            result[result < 0] = 0
-            unsatisfied = result.sum(1)
-            unsatisfied[unsatisfied < 3] = 0
-            unsatisfied = unsatisfied / 3
+            unsatisfied = 1-satisfied_clauses
 
         return satisfied, unsatisfied
 

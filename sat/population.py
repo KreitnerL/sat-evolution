@@ -17,7 +17,7 @@ class Population(object):
     def random(cnf, size):
         solutions = []
 
-        for i in range(size):
+        for _ in range(size):
             solutions.append(Solution.random(cnf))
 
         return Population(solutions, cnf)
@@ -57,7 +57,7 @@ class Population(object):
 
         self.solutions = sorted(self.solutions, key=lambda s: s.get_score(), reverse=True)[0:n_best]
 
-        for i in range(0, size - n_best):
+        for _ in range(0, size - n_best):
             parent1, parent2 = Population._pick_two(self.solutions)
             child1 = parent1.crossover(parent2)
             child2 = parent1.crossover(parent2)
@@ -75,6 +75,7 @@ class Population(object):
         for i in range(0, num_solutions):
             self.solutions[i].local_search(max_variables)
 
+    @staticmethod
     def _pick_two(solutions):
         if len(solutions) == 2:
             return solutions
