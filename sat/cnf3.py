@@ -56,10 +56,15 @@ class CNF3(object):
 
         # Get variables in unsatisfied clauses
         unsatisfied = None
+        unsatisfied_count_vector = np.zeros(self.num_variables, np.int8)
         if get_unsatisfied:
             unsatisfied = 1-satisfied_clauses
-
-        return satisfied, unsatisfied
+            mat2d = np.bitwise_or(self.mat[0], self.mat[1])
+            for i in range(unsatisfied.size):
+                mat2d[i]*=unsatisfied[i]
+            unsatisfied_count_vector = np.bitwise_or.reduce(mat2d,0)
+            
+        return satisfied, unsatisfied_count_vector
 
     # for each variable, number of clauses that contain it
     def get_participation(self):

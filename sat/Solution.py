@@ -100,9 +100,8 @@ class Solution(object):
     def get_score(self):
         return self.score
 
-    # A vector that encodes for each variable, if it participates in an unsat. clause
-    # 1: Yes, 0: No
+    # A vector that encodes for each variable, how often it participates in an unsatisfied clause
     def get_unsatisfied(self):
         if not self.has_unsatisfied:
             raise Exception("Unsatisfied not evaluated")
-        return self.assignments
+        return self.variables_in_unsat
