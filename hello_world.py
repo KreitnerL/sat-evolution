@@ -1,3 +1,5 @@
+import sys
+import time
 print("Hello World from the Server!")
 
 class ICH(object):
@@ -10,4 +12,7 @@ class ICH(object):
 
 if __name__ == '__main__':
     a = ICH()
+    time.sleep(10)
+    print(sys.argv[1])
+    raise ValueError("ERROR of DEATH")
     print(a.width)

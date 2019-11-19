@@ -46,6 +46,7 @@ class CNF3(object):
         contain variable i
         """
 
+        #calculate clause assignment
         result = np.array([np.bitwise_and(self.mat[0], solution[0]), np.bitwise_and(self.mat[1], solution[1])])
         # flatten to a 2D Matrix
         result2D = np.bitwise_or(result[0], result[1])

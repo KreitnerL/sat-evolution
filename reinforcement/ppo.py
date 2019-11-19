@@ -109,6 +109,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
         pass
 
     def optimize_model(self):
+        loss_item_array = []
 
         for _ in range(self.num_training_epochs):
 
@@ -123,10 +124,12 @@ class PPOStrategy(ReinforcementLearningStrategy):
                     returns) = self.preprocess_actor_experience_samples(mini_batch)
 
                 loss = self.calc_loss(states, actions, log_probs_old, advantages, returns)
+                loss_item_array.append(loss.item())
 
                 loss.backward()
                 self.optimizer.step()
 
+        print(loss_item_array)
         self.actor_experience_store = []
         self.update_exploration_rate()
         torch.cuda.empty_cache()
@@ -186,7 +189,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
             loss -= self.entropy_factor * distribution.entropy().view(batch_size, -1).sum(1)
 
         loss = loss.mean()
-        print(loss.item())
+        # print(loss.item())
 
         return loss
 
