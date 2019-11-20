@@ -48,7 +48,7 @@ Four different solvers are available:
 
 They can be trained using _train.py_ with the following syntax
 
-`python3 train.py [gene/individual/crossover/selection] [output directory]`
+`python3 train.py [gene/individual/crossover/selection] [output directory] [weights directory]? [start index]? `
 
 They can be validated using _validation_py with the following syntax (network weights are expected in the output dir as "baseline")
 

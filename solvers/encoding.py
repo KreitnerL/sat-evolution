@@ -38,7 +38,7 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
 
     def encode(self, population, generations_left):
         """
-        :returns: 5D tensor with the following channels/features:\n
+        :returns: 4D tensor with the following channels/features:\n
                     -genome of each individual\n
                     -fitness of each individual\n
                     -item weights\n
@@ -46,7 +46,7 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
                     -problem weight limits\n
                     -remaining number of generations\n
         """
-        # Dimensions of each feature: 1 x #Individuals x 2 x #Variables (e.g. 1x100x2x20)
+        # Dimensions of each feature: 1 x #Individuals x (#Variables*2) (e.g. 1x100x40)
 
         # Feature 0 : Solution of each individual
         population_data = torch.tensor(

@@ -14,6 +14,8 @@ print(sys.argv)
 
 solver_arg = sys.argv[1]
 outdir = sys.argv[2]
+weightsdir = sys.argv[3]
+start_at = sys.argv[4]
 
 
 population_size = 100
@@ -27,9 +29,18 @@ solverMap = {
 
 solver = solverMap.get(solver_arg, None)
 if solver is not None:
-    if os.path.isfile(outdir + "baseline"):
+    if weightsdir is not None and os.path.isfile(weightsdir + "baseline"):
         print("loading baseline")
-        solver.load_weights(outdir + "baseline")
+        solver.load_weights(weightsdir + "baseline")
     solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
-    pre_train_solver(solver, outdir)
-    train_solver(solver, outdir)
+    if start_at is not None:
+        training_stage = start_at.split(':')
+        if training_stage[0] == "pre":
+            pre_train_solver(solver, outdir, int(training_stage[1]))
+            train_solver(solver, outdir)
+        elif training_stage[0] == "train":
+            train_solver(solver, outdir, int(training_stage[1]))
+        raise ValueError("4th argument must be of for pre:INDEX or train:INDEX")
+    else:
+        pre_train_solver(solver, outdir)
+        train_solver(solver, outdir)
