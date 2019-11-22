@@ -2,6 +2,7 @@ from sat.problem_loader import load_problems
 
 from solvers.encoding import PopulationAndVariablesInInvalidClausesEncoding
 from solvers.solvers import *
+from timeit import default_timer as timer
 
 import sys
 import random
@@ -21,6 +22,8 @@ def validate(solver, problems, output):
         mbf.append(0)
 
     for index in range(0, n_problems):
+        # TIMING
+        start = timer()
         problem = problems[index]
         random.seed(time.time())
         solver.create_population(problem)
@@ -33,8 +36,12 @@ def validate(solver, problems, output):
 
             if solver.is_solved() and not solved:
                 solved = True
+                print("Solved in", i, "generations  -  in", (timer()-start), "sec")
 
             mbf[i] += solver.get_best_score()
+
+        if not solved:
+            print("Not solved  -  in", (timer()-start), "sec")
 
         solver.reset()
 
@@ -60,6 +67,7 @@ print(sys.argv)
 
 solver_arg = sys.argv[1]
 outdir = sys.argv[2]
+weightsdir = sys.argv[3]
 
 solverMap = {
     'gene': SolverWithGeneMutationControl(encoder, population_size, num_hidden_layers=3),
@@ -71,6 +79,6 @@ solverMap = {
 
 solver = solverMap.get(solver_arg, None)
 if solver is not None:
-    solver.load_weights(outdir + "baseline")
+    solver.load_weights(weightsdir + "baseline")
     solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
     run_validation(solver, outdir)
