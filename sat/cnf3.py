@@ -9,7 +9,7 @@ class CNF3(object):
 
     def __init__(self, path):
         self.filename = path
-        self.participation = None
+        self.participation: np.ndarray = None
 
         with open(path) as f:
             clause_index = 0

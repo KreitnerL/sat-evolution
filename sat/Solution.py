@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import time
+from sat.cnf3 import CNF3
 
 class Solution(object):
     """
@@ -8,7 +9,7 @@ class Solution(object):
     """
 
     # Initiate a random solution
-    def __init__(self, cnf, assignments):
+    def __init__(self, cnf: CNF3, assignments):
         self.cnf = cnf
         # A normalized 2xnum_vars matrix
         self.assignments = assignments

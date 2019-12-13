@@ -1,6 +1,8 @@
 from sat.Solution import Solution
 
 import random
+from sat.cnf3 import CNF3
+from typing import List
 
 
 class Population(object):
@@ -8,13 +10,13 @@ class Population(object):
     Represent a population of SAT3 solutions
     """
 
-    def __init__(self, solutions, cnf):
+    def __init__(self, solutions: List[CNF3], cnf: CNF3):
         self.cnf = cnf
         self.solutions = solutions
         self.size = len(solutions)
 
     @staticmethod
-    def random(cnf, size):
+    def random(cnf: CNF3, size):
         solutions = []
 
         for _ in range(size):
