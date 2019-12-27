@@ -10,7 +10,7 @@ class Population(object):
     Represent a population of SAT3 solutions
     """
 
-    def __init__(self, solutions: List[CNF3], cnf: CNF3):
+    def __init__(self, solutions: List[Solution], cnf: CNF3):
         self.cnf = cnf
         self.solutions = solutions
         self.size = len(solutions)

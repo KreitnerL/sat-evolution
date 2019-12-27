@@ -86,6 +86,7 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
                     -problem weight limits
                     -remaining number of generations
         """
+        # TODO
         # Dimensions of each feature: 1 x #Individuals x (#Variables*2) (e.g. 1x100x40)
 
         # Feature 0 : Solution of each individual

@@ -111,6 +111,7 @@ class CombinedActorCriticNetwork(nn.Module):
         :param state: 4D state tensor of Batchsize x #Channels x P x G
         :returns: Tuple of a tensor of action distribution parameters and a tensor of value approximates
         """
+        # TODO
         x = state
 
         for i in range(self.num_hidden_layers + 1):
