@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from sat.population import Population
-from typing import List
+from neural_networks.memory_efficient_state import ME_State
 
 
 class EncodingStrategy(ABC):
@@ -38,7 +38,7 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     Encoding strategy to be used for the 3SAT problem.
     """
 
-    def new_encode(self, population: Population, generations_left) -> List[torch.Tensor]:
+    def new_encode(self, population: Population, generations_left) -> ME_State:
         """
         :returns: list of tensors with the following attributes:\n
             - problem instance GxCx2
@@ -51,30 +51,34 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
             - Generations left 1
         """
         # Feature 0: Problem instance GxCx2
-        problem  = torch.tensor(population.cnf.mat).float()
+        problem  = torch.tensor(population.cnf.mat).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 1: Solution of each individual (genome) PxGx2
-        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float()
+        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 2: Fitness of each individual Px1
-        population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float()
+        # Feature 2: Fitness of each individual P
+        population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 3 : Participation in clauses Gx1
-        variable_participation = torch.tensor([population.cnf.get_participation() / population.cnf.num_clauses for _ in population.get_solutions()]).float()
+        # Feature 3 : Participation in clauses G
+        variable_participation = torch.tensor([population.cnf.get_participation() / population.cnf.num_clauses for _ in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 4 : Participation in unsatistfied clauses Gx1
-        in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float()
+        # Feature 4 : Participation in unsatistfied clauses G
+        variable_participation_in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 5 : Number of clauses 1
-        num_clauses = torch.tensor(population.cnf.num_clauses).float()
+        num_clauses = torch.tensor(population.cnf.num_clauses).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 6 : Number of variables 1
-        num_vars = torch.tensor(population.cnf.num_variables).float()
+        num_vars = torch.tensor(population.cnf.num_variables).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 7: Generations_left 1
-        generations_left = torch.tensor(generations_left).float()
+        generations_left = torch.tensor(generations_left).float().unsqueeze(0).unsqueeze(0)
 
-        return [problem, population_data, population_fitness, variable_participation, in_unsatisfied, num_clauses, num_vars, generations_left]
+        return ME_State(problem, 
+                            population_data,
+                            population_fitness,
+                            torch.cat((variable_participation, variable_participation_in_unsatisfied),1),
+                            torch.cat((num_clauses, num_vars, generations_left), 1))
 
     def encode(self, population, generations_left):
         """
