@@ -13,8 +13,11 @@ T = torch.Tensor
 
 class Memory_efficient_network(nn.Module):
     """
-    Sub layer that broadcasts and sums its inputs of different dimensions (1xGxCx2, PxGx1x2, Px1x1x1, 1xGx1x1, 1x1x1x1),
-    applies a non-linearity and pools it to get the outputs.
+    This network can process inputs of different sized dimensions (1xGxCx2, PxGx1x2, Px1x1x1, 1xGx1x1, 1x1x1x1).
+    The outputs are a 5D or 4D tensor actor ouput and a 0D tensor as critic output. The overall structure is as follows: \n
+    The inputs will be sent to a deep neural network with size num_hidden_layers and num_neurons neurons. In each layer the
+    memory efficent pool_conv_sum_nonlin_pool function will be applied. The result will then be splitted into actor and critic output.
+    Dimensions will be removed and the pool_conv_sum_nonlin_pool function will be applied again to form the outputs.
     """
 
     def __init__(self,
@@ -32,14 +35,17 @@ class Memory_efficient_network(nn.Module):
                 activation_func: type(F.leaky_relu) = F.leaky_relu,
                 global_pool_func: type(T.max) = T.max):
         """
-        :param num_input_channels: Number of input channel
+        :param num_input_channels_GxCx2: Number of input channels of tensors with dimension GxCx2
+        :param num_input_channels_PxGx2: Number of input channels of tensors with dimension PxGx2
+        :param num_input_channels_P: Number of input channels of tensors with dimension P
+        :param num_input_channels_G: Number of input channels of tensors with dimension G
+        :param num_input_channels_1: Number of input channels of tensors with dimension 1
         :param num_output_channels: Number of output channels for the actor component
-        :param eliminate_length_dimension: Whether to eliminate the 4th dimension of the actor output
+        :param eliminate_genome_dimension: Whether to eliminate the 4th dimension of the actor output
         :param eliminate_population_dimension: Whether to also eliminate the 3rd dimension of the actor output
         :param dim_eliminiation_max_pooling: Whether to use max- or mean-pooling
         :param num_hidden_layers: Number of layers between first convolution and the two output layers 
         :param num_neurons: Number of neurons / filters per conv layer
-        :param eliminate_length_dimension: Whether to eliminate
         :param activation_func: Activation function used as non-linearity.
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions.
         """
@@ -176,6 +182,10 @@ class Memory_efficient_network(nn.Module):
         return me_state
 
     def pool_conv_sum_nonlin_pool_4D(self, me_state: ME_State, c_GxCx2_Cx2, c_GxCx2_2, c_PxGx2_Px2, c_PxGx2_2, c_P, c_G, c_1):
+        """
+        Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxCx2, P, ...) applies the global_pool_function,
+        convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs.
+        """
         if me_state.input_PxGx2.dim() != 4:
             raise ValueError('Cannot handle input_PxGx2 with dimension', me_state.input_PxGx2.dim())
 
@@ -256,11 +266,6 @@ class Memory_efficient_network(nn.Module):
             self.output_layer_actor_GxCx2_GxCx2,self.output_layer_actor_GxCx2_Gx2, self.output_layer_actor_GxCx2_Cx2,
             self.output_layer_actor_PxGx2_PxGx2, self.output_layer_actor_PxGx2_Px2, self.output_layer_actor_PxGx2_Gx2,
             self.output_layer_actor_P, self.output_layer_actor_G, self.output_layer_actor_1)
-        action_distributions.input_GxCx2 = self.output_layer_actor_GxCx2(action_distributions.input_GxCx2)
-        action_distributions.input_PxGx2 = self.output_layer_actor_PxGx2(action_distributions.input_PxGx2)
-        action_distributions.input_P = self.output_layer_actor_P(action_distributions.input_P)
-        action_distributions.input_G = self.output_layer_actor_G(action_distributions.input_G)
-        action_distributions.input_1 = self.output_layer_actor_1(action_distributions.input_1)
 
         # Calculate value approximate
         values = self.pool_conv_sum_nonlin_pool_4D(values, self.output_layer_critic_GxCx2_Cx2, self.output_layer_critic_GxCx2_2,
