@@ -14,7 +14,7 @@ from torch.distributions.bernoulli import Bernoulli
 from torch.distributions.binomial import Binomial
 from torch.distributions.normal import Normal
 
-from neural_networks.networks import CombinedActorCriticNetwork
+from neural_networks.memory_efficient_network import Memory_efficient_network
 from reinforcement.ppo import PPOStrategy
 from strategies.strategy import Strategy
 
@@ -48,8 +48,8 @@ class IndividualMutationControl(PPOStrategy):
 
         num_output_channels = 2
 
-        network = CombinedActorCriticNetwork(
-            encoding_strategy.num_channels(),
+        network = Memory_efficient_network(
+            *encoding_strategy.num_channels(),
             num_output_channels,
             eliminate_length_dimension=True,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -131,8 +131,8 @@ class GeneMutationControl(PPOStrategy):
 
         num_output_channels = 2
 
-        network = CombinedActorCriticNetwork(
-            encoding_strategy.num_channels(),
+        network = Memory_efficient_network(
+            *encoding_strategy.num_channels(),
             num_output_channels,
             eliminate_length_dimension=False,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -215,8 +215,8 @@ class FitnessShapingControl(PPOStrategy):
 
         num_output_channels = 1
 
-        network = CombinedActorCriticNetwork(
-            encoding_strategy.num_channels(),
+        network = Memory_efficient_network(
+            *encoding_strategy.num_channels(),
             num_output_channels,
             eliminate_length_dimension=True,
             dim_elimination_max_pooling=dim_elimination_max_pooling,

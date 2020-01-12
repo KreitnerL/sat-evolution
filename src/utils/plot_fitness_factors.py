@@ -1,8 +1,8 @@
 from sat.problem_loader import load_problems
 from solvers.solvers import SolverWithFitnessShapingSelection
-from solvers.encoding import PopulationAndVariablesInInvalidClausesEncoding
+from solvers.encoding import ProblemInstanceEncoding
 
-encoder = PopulationAndVariablesInInvalidClausesEncoding()
+encoder = ProblemInstanceEncoding()
 
 solver = SolverWithFitnessShapingSelection(encoder, 5, num_hidden_layers=3)
 solver.set_evaluation_function(lambda population: population.evaluate(get_unsatisfied=True))

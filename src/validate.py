@@ -1,6 +1,6 @@
 from sat.problem_loader import load_problems
 
-from solvers.encoding import PopulationAndVariablesInInvalidClausesEncoding
+from solvers.encoding import ProblemInstanceEncoding
 from solvers.solvers import *
 from timeit import default_timer as timer
 
@@ -53,7 +53,7 @@ def validate(solver, problems, output):
             f.write(str(mbf[i]) + '\n')
             f.flush()
 
-encoder = PopulationAndVariablesInInvalidClausesEncoding()
+encoder = ProblemInstanceEncoding()
 
 def run_validation(solver, dir):
     problems = load_problems("examples-easy/", "uf20-0", ".cnf", (900,1000))

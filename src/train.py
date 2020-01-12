@@ -1,5 +1,5 @@
 from utils.training import train_solver, pre_train_solver
-from solvers.encoding import PopulationAndVariablesInInvalidClausesEncoding
+from solvers.encoding import ProblemInstanceEncoding
 from solvers.solvers import SolverWithIndividualMutationControl
 from solvers.solvers import SolverWithGeneMutationControl
 from solvers.solvers import SolverWithFitnessShapingCrossover
@@ -8,7 +8,7 @@ from solvers.solvers import SolverWithFitnessShapingSelection
 import os.path
 import sys
 
-encoder = PopulationAndVariablesInInvalidClausesEncoding()
+encoder = ProblemInstanceEncoding()
 
 print(sys.argv)
 
