@@ -13,6 +13,7 @@ from torch.distributions.beta import Beta
 from torch.distributions.bernoulli import Bernoulli
 from torch.distributions.binomial import Binomial
 from torch.distributions.normal import Normal
+from neural_networks.memory_efficient_state import ME_State
 
 from neural_networks.memory_efficient_network import Memory_efficient_network
 from reinforcement.ppo import PPOStrategy
@@ -51,7 +52,7 @@ class IndividualMutationControl(PPOStrategy):
         network = Memory_efficient_network(
             *encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_length_dimension=True,
+             eliminate_genome_dimension=True,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -79,7 +80,7 @@ class IndividualMutationControl(PPOStrategy):
     def select_action(self, state):
         self.optimizer.zero_grad()
 
-        distribution_params, _ = self.network(Variable(state).cuda())
+        distribution_params, _ = self.network(state.to_cuda_variable())
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -134,7 +135,7 @@ class GeneMutationControl(PPOStrategy):
         network = Memory_efficient_network(
             *encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_length_dimension=False,
+            eliminate_genome_dimension=False,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -162,7 +163,7 @@ class GeneMutationControl(PPOStrategy):
     def select_action(self, state):
         self.optimizer.zero_grad()
 
-        distribution_params, _ = self.network(Variable(state).cuda())
+        distribution_params, _ = self.network(state.to_cuda_variable())
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -218,7 +219,7 @@ class FitnessShapingControl(PPOStrategy):
         network = Memory_efficient_network(
             *encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_length_dimension=True,
+            eliminate_genome_dimension=True,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -243,10 +244,10 @@ class FitnessShapingControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state):
+    def select_action(self, state: ME_State):
         self.optimizer.zero_grad()
 
-        distribution_params, _ = self.network(Variable(state).cuda())
+        distribution_params, _ = self.network(state.to_cuda_variable())
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')

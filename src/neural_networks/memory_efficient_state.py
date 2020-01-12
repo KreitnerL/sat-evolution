@@ -1,4 +1,5 @@
 from torch import Tensor as T
+from torch.autograd import Variable
 
 class ME_State:
     """
@@ -17,3 +18,12 @@ class ME_State:
 
     def clone(self):
         return ME_State( self.input_GxE.clone(), self.input_PxG.clone(), self.input_P.clone(), self.input_G.clone(), self.input_1.clone())
+
+    def apply_fn(self, fn):
+        return ME_State(*tuple(fn(array) if array is not None else None for array in self.get_inputs()))
+
+    def to_cuda_variable(self):
+        return self.apply_fn(lambda array: Variable(array).cuda())
+
+    def detach(self):
+        return self.apply_fn(lambda array: array.detach())
