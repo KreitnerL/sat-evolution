@@ -33,12 +33,12 @@ class EncodingStrategy(ABC):
     def num_channels(self):
         pass
 
-class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
-    """
-    Encoding strategy to be used for the 3SAT problem.
-    """
 
-    def new_encode(self, population: Population, generations_left) -> ME_State:
+class ProblemInstanceEncoding(EncodingStrategy):
+    """
+    Improved encoding strategy to be used for the 3SAT problem.
+    """
+    def encode(self, population: Population, generations_left) -> ME_State:
         """
         :returns: list of tensors with the following attributes:\n
             - problem instance GxCx2
@@ -50,11 +50,11 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
             - Number of  variables 1
             - Generations left 1
         """
-        # Feature 0: Problem instance GxCx2
-        problem  = torch.tensor(population.cnf.mat).float().unsqueeze(0).unsqueeze(0)
+        # Feature 0: Problem instance (2x)GxE
+        problem  = torch.tensor(population.cnf.mat).float().permute(2,0,1).unsqueeze(0)
 
-        # Feature 1: Solution of each individual (genome) PxGx2
-        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
+        # Feature 1: Solution of each individual (genome) (2x)PxG
+        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(2,0,1).unsqueeze(0)
 
         # Feature 2: Fitness of each individual P
         population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
@@ -79,6 +79,14 @@ class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
                             population_fitness,
                             torch.cat((variable_participation, variable_participation_in_unsatisfied),1),
                             torch.cat((num_clauses, num_vars, generations_left), 1))
+    
+    def num_channels(self):
+        return 2, 2, 1, 2, 3
+
+class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
+    """
+    Encoding strategy to be used for the 3SAT problem.
+    """
 
     def encode(self, population, generations_left):
         """
