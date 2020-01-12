@@ -94,9 +94,9 @@ class Memory_efficient_network(nn.Module):
                 self.layers_PxG_P.append(nn.Conv1d(num_neurons, num_neurons, 1))
                 self.layers_PxG_G.append(nn.Conv1d(num_neurons, num_neurons, 1))
 
-                self.layers_P.append(nn.Conv1d(num_input_channels_P,num_neurons,1))
-                self.layers_G.append(nn.Conv1d(num_input_channels_G,num_neurons,1))
-                self.layers_1.append(nn.Conv1d(num_input_channels_1,num_neurons,1))
+                self.layers_P.append(nn.Conv1d(num_neurons,num_neurons,1))
+                self.layers_G.append(nn.Conv1d(num_neurons,num_neurons,1))
+                self.layers_1.append(nn.Conv1d(num_neurons,num_neurons,1))
 
         # Generate output layers
         if self.eliminiate_genome_dimension:
@@ -161,11 +161,11 @@ class Memory_efficient_network(nn.Module):
 
         me_state.input_P = c_P(me_state.input_P)
         me_state.input_G = c_G(me_state.input_G)
-        me_state.input_1 = c_1(me_state.input_G)
+        me_state.input_1 = c_1(me_state.input_1)
 
         # Sum with broadcasting
         sum_PxGxE = torch.tensor(0)
-        for x in me_state.get_inputs():
+        for x in tuple(*me_state.get_inputs(), input_GxE_G, input_GxE_E, input_PxG_P, input_PxG_G):
             sum_PxGxE += x
 
         # Non-linearity
@@ -174,9 +174,8 @@ class Memory_efficient_network(nn.Module):
         # Pooling
         me_state.input_GxE = self.global_pool_func(sum_PxGxE, 2)[0]
         me_state.input_PxG = self.global_pool_func(sum_PxGxE, 4)[0]
-        tmp_PxG = self.global_pool_func(me_state.input_PxG, 4)[0]
-        me_state.input_P = self.global_pool_func(tmp_PxG, 3)[0]
-        me_state.input_G = self.global_pool_func(tmp_PxG, 2)[0]
+        me_state.input_P = self.global_pool_func(me_state.input_PxG, 3)[0]
+        me_state.input_G = self.global_pool_func(me_state.input_PxG, 2)[0]
         me_state.input_1 = self.global_pool_func(me_state.input_G, 2)[0]
 
         return me_state
@@ -205,11 +204,11 @@ class Memory_efficient_network(nn.Module):
 
         me_state.input_P = c_P(me_state.input_P)
         me_state.input_G = c_G(me_state.input_G)
-        me_state.input_1 = c_1(me_state.input_G)
+        me_state.input_1 = c_1(me_state.input_1)
 
         # Sum with broadcasting
         sum_PxE = torch.tensor(0)
-        for x in me_state.get_inputs():
+        for x in tuple(*me_state.get_inputs(), input_GxE_1, input_PxG_1):
             sum_PxE += x
 
         # Non-linearity
@@ -218,9 +217,8 @@ class Memory_efficient_network(nn.Module):
         # Pooling
         # Note that the genome dimension is ignored
         me_state.input_GxE = self.global_pool_func(sum_PxE, 2)[0]
-        me_state.input_PxG = sum_PxE
-        tmp_P = self.global_pool_func(sum_PxE, 3)[0]
-        me_state.input_P = self.global_pool_func(tmp_P, 3)[0]
+        me_state.input_PxG = self.global_pool_func(sum_PxE, 3)[0]
+        me_state.input_P = me_state.input_PxG.clone()
         me_state.input_G = self.global_pool_func(me_state.input_P, 2)[0]
         me_state.input_1 = me_state.input_G.clone()
         

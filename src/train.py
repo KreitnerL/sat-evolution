@@ -14,8 +14,12 @@ print(sys.argv)
 
 solver_arg = sys.argv[1]
 outdir = sys.argv[2]
-weightsdir = sys.argv[3]
-start_at = sys.argv[4]
+weightsdir = None
+if len(sys.argv) > 3:
+    weightsdir = sys.argv[3]
+start_at = None
+if len(sys.argv) > 4:
+    start_at = sys.argv[4]
 
 
 population_size = 100
