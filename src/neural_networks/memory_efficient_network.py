@@ -24,7 +24,6 @@ class Memory_efficient_network(nn.Module):
                 num_input_channels_GxE,
                 num_input_channels_PxG,
                 num_input_channels_P,
-                num_input_channels_G,
                 num_input_channels_1,
                 num_output_channels,
                 eliminate_genome_dimension=True,
@@ -68,7 +67,6 @@ class Memory_efficient_network(nn.Module):
         self.layers_PxG_P = nn.ModuleList()
         self.layers_PxG_G = nn.ModuleList()
         self.layers_P = nn.ModuleList()
-        self.layers_G = nn.ModuleList()
         self.layers_1 =  nn.ModuleList()
 
         # Generate input and hidden layers
@@ -83,7 +81,6 @@ class Memory_efficient_network(nn.Module):
                 self.layers_PxG_G.append(nn.Conv1d(num_input_channels_PxG, num_neurons, 1))
 
                 self.layers_P.append(nn.Conv1d(num_input_channels_P,num_neurons,1))
-                self.layers_G.append(nn.Conv1d(num_input_channels_G,num_neurons,1))
                 self.layers_1.append(nn.Conv1d(num_input_channels_1,num_neurons,1))
             else:
                 self.layers_GxE_GxE.append(nn.Conv2d(num_neurons, num_neurons, 1))
@@ -95,7 +92,6 @@ class Memory_efficient_network(nn.Module):
                 self.layers_PxG_G.append(nn.Conv1d(num_neurons, num_neurons, 1))
 
                 self.layers_P.append(nn.Conv1d(num_neurons,num_neurons,1))
-                self.layers_G.append(nn.Conv1d(num_neurons,num_neurons,1))
                 self.layers_1.append(nn.Conv1d(num_neurons,num_neurons,1))
 
         # Generate output layers
@@ -107,7 +103,6 @@ class Memory_efficient_network(nn.Module):
             self.output_layer_actor_PxG_1 = nn.Conv1d(num_neurons, 1, 1)
 
             self.output_layer_actor_P = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_G = nn.Conv1d(num_neurons,1,1)
             self.output_layer_actor_1 = nn.Conv1d(num_neurons,1,1)
         else:
             self.output_layer_actor_GxE_GxE = nn.Conv2d(num_neurons, 1, 1)
@@ -119,7 +114,6 @@ class Memory_efficient_network(nn.Module):
             self.output_layer_actor_PxG_G = nn.Conv1d(num_neurons, 1, 1)
 
             self.output_layer_actor_P = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_G = nn.Conv1d(num_neurons,1,1)
             self.output_layer_actor_1 = nn.Conv1d(num_neurons,1,1)
 
         self.output_layer_critic_GxE_E = nn.Conv1d(num_neurons, 1, 1)
@@ -129,13 +123,12 @@ class Memory_efficient_network(nn.Module):
         self.output_layer_critic_PxG_1 = nn.Conv1d(num_neurons, 1, 1)
 
         self.output_layer_critic_P = nn.Conv1d(num_neurons, 1, 1)
-        self.output_layer_critic_G = nn.Conv1d(num_neurons, 1, 1)
         self.output_layer_critic_1 = nn.Conv1d(num_neurons, 1, 1)
 
         self.apply(init_weights)
 
     def pool_conv_sum_nonlin_pool_5D(self, me_state: ME_State, c_GxE_GxE, c_GxE_G, c_GxE_E, 
-                    c_PxG_PxG, c_PxG_P, c_PxG_G, c_P, c_G, c_1):
+                    c_PxG_PxG, c_PxG_P, c_PxG_G, c_P, c_1):
         """
         Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxE, P, ...) applies the global_pool_function,
         convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs
@@ -160,13 +153,20 @@ class Memory_efficient_network(nn.Module):
         input_PxG_G = c_PxG_G(input_PxG_G)
 
         me_state.input_P = c_P(me_state.input_P)
-        me_state.input_G = c_G(me_state.input_G)
         me_state.input_1 = c_1(me_state.input_1)
 
         # Sum with broadcasting
-        sum_PxGxE = torch.tensor(0)
-        for x in tuple(*me_state.get_inputs(), input_GxE_G, input_GxE_E, input_PxG_P, input_PxG_G):
-            sum_PxGxE += x
+        sum_PxGxE = torch.tensor(0).float()
+        l = (me_state.input_PxG.unsqueeze(-1),
+            me_state.input_GxE.unsqueeze(2),
+            me_state.input_P.unsqueeze(-1).unsqueeze(-1),
+            me_state.input_1.unsqueeze(-1).unsqueeze(-1),
+            input_GxE_G.unsqueeze(2).unsqueeze(-1),
+            input_GxE_E.unsqueeze(2).unsqueeze(2),
+            input_PxG_P.unsqueeze(-1).unsqueeze(-1),
+            input_PxG_G.unsqueeze(2).unsqueeze(-1))
+        for x in l:
+            sum_PxGxE = sum_PxGxE + x
 
         # Non-linearity
         self.activation_func(sum_PxGxE)
@@ -175,12 +175,11 @@ class Memory_efficient_network(nn.Module):
         me_state.input_GxE = self.global_pool_func(sum_PxGxE, 2)[0]
         me_state.input_PxG = self.global_pool_func(sum_PxGxE, 4)[0]
         me_state.input_P = self.global_pool_func(me_state.input_PxG, 3)[0]
-        me_state.input_G = self.global_pool_func(me_state.input_PxG, 2)[0]
-        me_state.input_1 = self.global_pool_func(me_state.input_G, 2)[0]
+        me_state.input_1 = self.global_pool_func(me_state.input_P, 2)[0].unsqueeze(-1)
 
         return me_state
 
-    def pool_conv_sum_nonlin_pool_4D(self, me_state: ME_State, c_GxE_E, c_GxE_1, c_PxG_P, c_PxG_1, c_P, c_G, c_1):
+    def pool_conv_sum_nonlin_pool_4D(self, me_state: ME_State, c_GxE_E, c_GxE_1, c_PxG_P, c_PxG_1, c_P, c_1):
         """
         Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxE, P, ...) applies the global_pool_function,
         convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs.
@@ -203,13 +202,12 @@ class Memory_efficient_network(nn.Module):
         input_PxG_1 = c_PxG_1(input_PxG_1)
 
         me_state.input_P = c_P(me_state.input_P)
-        me_state.input_G = c_G(me_state.input_G)
         me_state.input_1 = c_1(me_state.input_1)
 
         # Sum with broadcasting
         sum_PxE = torch.tensor(0)
-        for x in tuple(*me_state.get_inputs(), input_GxE_1, input_PxG_1):
-            sum_PxE += x
+        for x in (*me_state.get_inputs(), input_GxE_1, input_PxG_1):
+            sum_PxE = sum_PxE + x
 
         # Non-linearity
         self.activation_func(sum_PxE)
@@ -219,8 +217,7 @@ class Memory_efficient_network(nn.Module):
         me_state.input_GxE = self.global_pool_func(sum_PxE, 2)[0]
         me_state.input_PxG = self.global_pool_func(sum_PxE, 3)[0]
         me_state.input_P = me_state.input_PxG.clone()
-        me_state.input_G = self.global_pool_func(me_state.input_P, 2)[0]
-        me_state.input_1 = me_state.input_G.clone()
+        me_state.input_1 = self.global_pool_func(me_state.input_P, 2)[0].unsqeeze(-1)
         
         return me_state
 
@@ -230,10 +227,13 @@ class Memory_efficient_network(nn.Module):
             # Pool, Conv, Sum
             me_state = self.pool_conv_sum_nonlin_pool_5D(me_state, self.layers_GxE_GxE[i], self.layers_GxE_G[i], self.layers_GxE_E[i],
                                         self.layers_PxG_PxG[i], self.layers_PxG_P[i], self.layers_PxG_G[i],
-                                        self.layers_P[i], self.layers_G[i], self.layers_1[i])
+                                        self.layers_P[i], self.layers_1[i])
 
         action_distributions = me_state
         values = me_state.clone()
+
+        for x in action_distributions.get_inputs():
+            print("X:", x.size())
 
         # Eliminate dimensions before the output layers
         if self.dim_elimination_max_pooling:
@@ -243,38 +243,42 @@ class Memory_efficient_network(nn.Module):
                 if self.eliminate_population_dimension:
                     action_distributions.input_PxG = action_distributions.input_PxG.max(2)[0].unsqueeze(2)
             values.input_GxE = values.input_GxE.max(2)[0]
-            values.input_PxG = values.input_GxE.max(3)[0]
+            values.input_PxG = values.input_PxG.max(3)[0]
         else:
             if self.eliminiate_genome_dimension:
-                action_distributions.input_GxE = action_distributions.input_GxE.mean(2)[0]
-                action_distributions.input_PxG = action_distributions.input_PxG.mean(3)[0]
+                action_distributions.input_GxE = action_distributions.input_GxE.mean(2, keepdim=True)[0]
+                action_distributions.input_PxG = action_distributions.input_PxG.mean(3, keepdim=True)[0]
+                for x in action_distributions.get_inputs():
+                    print("W:", x.size())
                 if self.eliminate_population_dimension:
-                    action_distributions.input_PxG = action_distributions.input_PxG.mean(2)[0].unsqueeze(2)
-            values.input_GxE = values.input_GxE.mean(2)[0]
-            values.input_PxG = values.input_GxE.mean(3)[0]
+                    action_distributions.input_PxG = action_distributions.input_PxG.mean(2, keepdim=True)[0].unsqueeze(2)
+            values.input_GxE = values.input_GxE.mean(2, keepdim=True)[0]
+            values.input_PxG = values.input_PxG.mean(3, keepdim=True)[0]
+
+        for x in action_distributions.get_inputs():
+            print("Y:", x.size())
 
         # Calculate action output
         if self.eliminiate_genome_dimension:
             action_distributions = self.pool_conv_sum_nonlin_pool_4D(action_distributions, 
                 self.output_layer_actor_GxE_E, self.output_layer_actor_GxE_1,
                 self.output_layer_actor_PxG_P, self.output_layer_actor_PxG_1,
-                self.output_layer_actor_P, self.output_layer_actor_G, self.output_layer_actor_1)
+                self.output_layer_actor_P, self.output_layer_actor_1)
         else:
             action_distributions = self.pool_conv_sum_nonlin_pool_5D(action_distributions, 
             self.output_layer_actor_GxE_GxE,self.output_layer_actor_GxE_G, self.output_layer_actor_GxE_E,
             self.output_layer_actor_PxG_PxG, self.output_layer_actor_PxG_P, self.output_layer_actor_PxG_G,
-            self.output_layer_actor_P, self.output_layer_actor_G, self.output_layer_actor_1)
+            self.output_layer_actor_P, self.output_layer_actor_1)
 
         # Calculate value approximate
         values = self.pool_conv_sum_nonlin_pool_4D(values, self.output_layer_critic_GxE_E, self.output_layer_critic_GxE_1,
             self.output_layer_critic_PxG_P, self.output_layer_critic_PxG_1,
-            self.output_layer_critic_P, self.output_layer_critic_G, self.output_layer_critic_1)
+            self.output_layer_critic_P, self.output_layer_critic_1)
 
         # Sum everything up
-        values = torch.cat([values.input_GxE.mean(3).sum(2).view(-1),
-                            values.input_PxG.mean(3).sum(2).view(-1),
+        values = torch.cat([values.input_GxE.mean(3, keepdim=True).sum(2).view(-1),
+                            values.input_PxG.mean(3, keepdim=True).sum(2).view(-1),
                             values.input_P.sum(2).view(-1),
-                            values.input_G.sum(2).view(-1),
                             values.input_1.view(-1)]).sum().unsqueeze(0)
             
         return action_distributions, values

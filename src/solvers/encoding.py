@@ -51,10 +51,10 @@ class ProblemInstanceEncoding(EncodingStrategy):
             - Generations left 1
         """
         # Feature 0: Problem instance (2x)GxE
-        problem  = torch.tensor(population.cnf.mat).float().permute(2,0,1).unsqueeze(0)
+        problem  = torch.tensor(population.cnf.mat).float().permute(0,2,1).unsqueeze(0)
 
         # Feature 1: Solution of each individual (genome) (2x)PxG
-        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(2,0,1).unsqueeze(0)
+        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(1,0,2).unsqueeze(0)
 
         # Feature 2: Fitness of each individual P
         population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
@@ -66,22 +66,26 @@ class ProblemInstanceEncoding(EncodingStrategy):
         variable_participation_in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 5 : Number of clauses 1
-        num_clauses = torch.tensor(population.cnf.num_clauses).float().unsqueeze(0).unsqueeze(0)
+        num_clauses = torch.tensor([population.cnf.num_clauses]).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 6 : Number of variables 1
-        num_vars = torch.tensor(population.cnf.num_variables).float().unsqueeze(0).unsqueeze(0)
+        num_vars = torch.tensor([population.cnf.num_variables]).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 7: Generations_left 1
-        generations_left = torch.tensor(generations_left).float().unsqueeze(0).unsqueeze(0)
+        generations_left = torch.tensor([generations_left]).float().unsqueeze(0).unsqueeze(0)
+
+        print("Problem:", problem.size(),
+         "Solution:", torch.cat((population_data, variable_participation, variable_participation_in_unsatisfied), 1).size(),
+         "population_fitness:", population_fitness.size(), 
+         "1:", torch.cat((num_clauses, num_vars, generations_left), 1).size())
 
         return ME_State(problem, 
-                            population_data,
-                            population_fitness,
-                            torch.cat((variable_participation, variable_participation_in_unsatisfied),1),
-                            torch.cat((num_clauses, num_vars, generations_left), 1))
+                        torch.cat((population_data, variable_participation, variable_participation_in_unsatisfied), 1),
+                        population_fitness,
+                        torch.cat((num_clauses, num_vars, generations_left), 1))
     
     def num_channels(self):
-        return 2, 2, 1, 2, 3
+        return 2, 4, 1, 3
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """

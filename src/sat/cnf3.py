@@ -67,8 +67,10 @@ class CNF3(object):
             
         return satisfied, unsatisfied_count_vector
 
-    # for each variable, number of clauses that contain it
     def get_participation(self):
+        """
+        returns for each variable, number of clauses that contain it
+        """
         if self.participation is None:
             self.participation = np.bitwise_or(self.mat[0], self.mat[1]).sum(0)
 
