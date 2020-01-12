@@ -85,7 +85,7 @@ def pre_train_solver(solver, dir, start_at = 0):
     # pre train with easy examples
     for j in range(start_at, pre_training_rounds):
         print("Starting pre-training round", j)
-        problems = load_problems("examples-easy/", "uf20-0", ".cnf", (1,900))
+        problems = load_problems("DATA/examples-easy/", "uf20-0", ".cnf", (1,900))
         filename = dir + str(j) + "-pre.txt"
         train_problem_set(solver, problems, 512, filename, 20)
         solver.save_network(dir, j)
@@ -95,7 +95,7 @@ def train_solver(solver, dir, start_at = 1):
     # alternate easy, medium
     for j in range(start_at, training_rounds):
         print("Starting training round", j)
-        problems = load_problems("examples-easy/", "uf20-0", ".cnf", (1,101))
+        problems = load_problems("DATA/examples-easy/", "uf20-0", ".cnf", (1,101))
         filename = dir + str(j) + "-easy.txt"
         train_problem_set(solver, problems, 512, filename, 20)
         solver.save_network(dir, "training-" + str(j))
