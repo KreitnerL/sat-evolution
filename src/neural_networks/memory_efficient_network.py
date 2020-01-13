@@ -277,6 +277,6 @@ class Memory_efficient_network(nn.Module):
         values = sum((values.input_GxE.sum(2),
                             values.input_PxG.sum(2),
                             values.input_P.sum(2),
-                            values.input_1.sum(2)), 2)
+                            values.input_1.sum(2)), 2).view(-1)
             
         return action_distributions, values
