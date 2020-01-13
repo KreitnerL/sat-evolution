@@ -27,3 +27,7 @@ class ME_State:
 
     def detach(self):
         return self.apply_fn(lambda array: array.detach())
+
+    def __str__(self):
+        return 'ME_State: ' + str([array.size() for array in self.get_inputs()])
+        # return 'ME_State: \ninput_GxE:'+ str(self.input_GxE.size()), '\ninput_PxG:', self.input_PxG.size(), '\ninput_P:', self.input_P.size(), '\n input_1:', self.input_1.size()

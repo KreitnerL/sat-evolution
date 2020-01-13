@@ -74,11 +74,6 @@ class ProblemInstanceEncoding(EncodingStrategy):
         # Feature 7: Generations_left 1
         generations_left = torch.tensor([generations_left]).float().unsqueeze(0).unsqueeze(0)
 
-        print("Problem:", problem.size(),
-         "Solution:", torch.cat((population_data, variable_participation, variable_participation_in_unsatisfied), 1).size(),
-         "population_fitness:", population_fitness.size(), 
-         "1:", torch.cat((num_clauses, num_vars, generations_left), 1).size())
-
         return ME_State(problem, 
                         torch.cat((population_data, variable_participation, variable_participation_in_unsatisfied), 1),
                         population_fitness,
