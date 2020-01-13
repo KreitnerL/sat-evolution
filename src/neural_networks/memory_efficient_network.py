@@ -127,14 +127,14 @@ class Memory_efficient_network(nn.Module):
 
         self.apply(init_weights)
 
-    def pool_conv_sum_nonlin_pool_5D(self, me_state: ME_State, c_GxE_GxE, c_GxE_G, c_GxE_E, 
-                    c_PxG_PxG, c_PxG_P, c_PxG_G, c_P, c_1):
+    def pool_conv_sum_nonlin_pool_4D(self, me_state: ME_State, c_GxE_GxE, c_GxE_G, c_GxE_E, 
+                    c_PxG_PxG, c_PxG_P, c_PxG_G, c_P, c_1, pool=True):
         """
         Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxE, P, ...) applies the global_pool_function,
         convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs
         """
         if me_state.input_PxG.dim() != 4:
-            raise ValueError('Cannot handle input_PxG with dimension', me_state.input_PxG.dim())
+            raise ValueError('Cannot handle input_PxG with dimension', me_state.input_PxG.size())
 
         # Pooling
         input_GxE_G = self.global_pool_func(me_state.input_GxE, 3)[0]
@@ -179,23 +179,22 @@ class Memory_efficient_network(nn.Module):
 
         return me_state
 
-    def pool_conv_sum_nonlin_pool_4D(self, me_state: ME_State, c_GxE_E, c_GxE_1, c_PxG_P, c_PxG_1, c_P, c_1):
+    def pool_conv_sum_nonlin_pool_3D(self, me_state: ME_State, c_GxE_E, c_GxE_1, c_PxG_P, c_PxG_1, c_P, c_1, pool=True):
         """
         Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxE, P, ...) applies the global_pool_function,
         convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs.
         """
         if me_state.input_PxG.dim() != 3:
-            raise ValueError('Cannot handle input_PxG with dimension', me_state.input_PxG.dim())
-
+            raise ValueError('Cannot handle input_PxG with dimension', me_state.input_PxG.size())
         # Genome Dimension has been removed
 
         # Pooling
-        input_GxE_1 = self.global_pool_func(me_state.input_GxE, 2)[0]
+        input_GxE_1 = self.global_pool_func(me_state.input_GxE, 2, keepdim=True)[0]
 
-        input_PxG_1 = self.global_pool_func(me_state.input_PxG, 2)[0]
+        input_PxG_1 = self.global_pool_func(me_state.input_PxG, 2, keepdim=True)[0]
 
         # Conv
-        me_state.input_GxE = c_GxE_1(me_state.input_GxE)
+        me_state.input_GxE = c_GxE_E(me_state.input_GxE)
         input_GxE_1 = c_GxE_1(input_GxE_1)
 
         me_state.input_PxG = c_PxG_P(me_state.input_PxG)
@@ -206,18 +205,25 @@ class Memory_efficient_network(nn.Module):
 
         # Sum with broadcasting
         sum_PxE = torch.tensor(0)
-        for x in (*me_state.get_inputs(), input_GxE_1, input_PxG_1):
+        l = (me_state.input_GxE.unsqueeze(2),
+            me_state.input_PxG.unsqueeze(-1),
+            me_state.input_P.unsqueeze(-1),
+            me_state.input_1.unsqueeze(-1),
+            input_GxE_1.unsqueeze(-1),
+            input_PxG_1.unsqueeze(-1))
+        for x in l:
             sum_PxE = sum_PxE + x
 
         # Non-linearity
         self.activation_func(sum_PxE)
 
-        # Pooling
-        # Note that the genome dimension is ignored
+        if(not pool):
+            return sum_PxE
+        # Pooling (Note that the genome dimension does not exist)
         me_state.input_GxE = self.global_pool_func(sum_PxE, 2)[0]
         me_state.input_PxG = self.global_pool_func(sum_PxE, 3)[0]
         me_state.input_P = me_state.input_PxG.clone()
-        me_state.input_1 = self.global_pool_func(me_state.input_P, 2)[0].unsqeeze(-1)
+        me_state.input_1 = self.global_pool_func(me_state.input_P, 2, keepdim=True)[0]
         
         return me_state
 
@@ -225,15 +231,12 @@ class Memory_efficient_network(nn.Module):
     def forward(self, me_state: ME_State):
         for i in range(self.num_hidden_layers + 1):
             # Pool, Conv, Sum
-            me_state = self.pool_conv_sum_nonlin_pool_5D(me_state, self.layers_GxE_GxE[i], self.layers_GxE_G[i], self.layers_GxE_E[i],
+            me_state = self.pool_conv_sum_nonlin_pool_4D(me_state, self.layers_GxE_GxE[i], self.layers_GxE_G[i], self.layers_GxE_E[i],
                                         self.layers_PxG_PxG[i], self.layers_PxG_P[i], self.layers_PxG_G[i],
                                         self.layers_P[i], self.layers_1[i])
 
         action_distributions = me_state
         values = me_state.clone()
-
-        for x in action_distributions.get_inputs():
-            print("X:", x.size())
 
         # Eliminate dimensions before the output layers
         if self.dim_elimination_max_pooling:
@@ -246,39 +249,34 @@ class Memory_efficient_network(nn.Module):
             values.input_PxG = values.input_PxG.max(3)[0]
         else:
             if self.eliminiate_genome_dimension:
-                action_distributions.input_GxE = action_distributions.input_GxE.mean(2, keepdim=True)[0]
-                action_distributions.input_PxG = action_distributions.input_PxG.mean(3, keepdim=True)[0]
-                for x in action_distributions.get_inputs():
-                    print("W:", x.size())
+                action_distributions.input_GxE = action_distributions.input_GxE.mean(2)
+                action_distributions.input_PxG = action_distributions.input_PxG.mean(3)
                 if self.eliminate_population_dimension:
-                    action_distributions.input_PxG = action_distributions.input_PxG.mean(2, keepdim=True)[0].unsqueeze(2)
-            values.input_GxE = values.input_GxE.mean(2, keepdim=True)[0]
-            values.input_PxG = values.input_PxG.mean(3, keepdim=True)[0]
-
-        for x in action_distributions.get_inputs():
-            print("Y:", x.size())
+                    action_distributions.input_PxG = action_distributions.input_PxG.mean(2).unsqueeze(2)
+            values.input_GxE = values.input_GxE.mean(2)
+            values.input_PxG = values.input_PxG.mean(3)
 
         # Calculate action output
         if self.eliminiate_genome_dimension:
-            action_distributions = self.pool_conv_sum_nonlin_pool_4D(action_distributions, 
+            action_distributions = self.pool_conv_sum_nonlin_pool_3D(action_distributions, 
                 self.output_layer_actor_GxE_E, self.output_layer_actor_GxE_1,
                 self.output_layer_actor_PxG_P, self.output_layer_actor_PxG_1,
-                self.output_layer_actor_P, self.output_layer_actor_1)
+                self.output_layer_actor_P, self.output_layer_actor_1, pool=False)
         else:
-            action_distributions = self.pool_conv_sum_nonlin_pool_5D(action_distributions, 
+            action_distributions = self.pool_conv_sum_nonlin_pool_4D(action_distributions, 
             self.output_layer_actor_GxE_GxE,self.output_layer_actor_GxE_G, self.output_layer_actor_GxE_E,
             self.output_layer_actor_PxG_PxG, self.output_layer_actor_PxG_P, self.output_layer_actor_PxG_G,
-            self.output_layer_actor_P, self.output_layer_actor_1)
+            self.output_layer_actor_P, self.output_layer_actor_1, pool=False)
 
         # Calculate value approximate
-        values = self.pool_conv_sum_nonlin_pool_4D(values, self.output_layer_critic_GxE_E, self.output_layer_critic_GxE_1,
+        values = self.pool_conv_sum_nonlin_pool_3D(values, self.output_layer_critic_GxE_E, self.output_layer_critic_GxE_1,
             self.output_layer_critic_PxG_P, self.output_layer_critic_PxG_1,
             self.output_layer_critic_P, self.output_layer_critic_1)
 
         # Sum everything up
-        values = torch.cat([values.input_GxE.mean(3, keepdim=True).sum(2).view(-1),
-                            values.input_PxG.mean(3, keepdim=True).sum(2).view(-1),
-                            values.input_P.sum(2).view(-1),
-                            values.input_1.view(-1)]).sum().unsqueeze(0)
+        values = sum((values.input_GxE.sum(2),
+                            values.input_PxG.sum(2),
+                            values.input_P.sum(2),
+                            values.input_1.sum(2)), 2)
             
         return action_distributions, values
