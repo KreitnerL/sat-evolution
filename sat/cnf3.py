@@ -33,9 +33,11 @@ class CNF3(object):
                         break
 
                     if var_index > 0:
-                        self.mat[clause_index][var_index-1] = 1
+                        var_index-=1
+                        self.mat[clause_index][var_index] = 1
                     else:
-                        self.mat[clause_index][-var_index+1] = -1
+                        var_index+=1
+                        self.mat[clause_index][-var_index] = -1
 
                 clause_index += 1
 
