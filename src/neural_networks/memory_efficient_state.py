@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor as T
 from torch.autograd import Variable
+from typing import List, Tuple
 
 class ME_State:
     """
@@ -30,4 +31,11 @@ class ME_State:
 
     def __str__(self):
         return 'ME_State: ' + str([array.size() for array in self.get_inputs()])
-        # return 'ME_State: \ninput_GxE:'+ str(self.input_GxE.size()), '\ninput_PxG:', self.input_PxG.size(), '\ninput_P:', self.input_P.size(), '\n input_1:', self.input_1.size()
+
+def concat(me_states: List[ME_State]) -> ME_State:
+    inputs_array = list(zip(*tuple([me_state.get_inputs() for me_state in me_states])))
+    combined_states: List[T] = []
+    for inputs in inputs_array:
+        combined_states.append(torch.cat(inputs))
+    # pylint: disable=no-value-for-parameter
+    return ME_State(*tuple(combined_states))

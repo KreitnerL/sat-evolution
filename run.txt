@@ -1,4 +1,4 @@
-/usr/prakt/w0060/.conda/envs/my_env/bin/python /usr/prakt/w0060/SAT/train.py crossover solution/crossover/
+/usr/prakt/w0060/.conda/envs/my_env/bin/python src/train.py crossover solution/crossover/
 60
 46
 51

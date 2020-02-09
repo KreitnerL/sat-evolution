@@ -7,6 +7,7 @@ import torch.optim as optim
 
 from reinforcement.reinforcement import ReinforcementLearningStrategy
 
+from neural_networks.memory_efficient_state import concat
 
 class PPOStrategy(ReinforcementLearningStrategy):
     """
@@ -215,7 +216,8 @@ class PPOStrategy(ReinforcementLearningStrategy):
             states, actions, log_probs, rewards, new_states = zip(*self.episode_memory)
             self.episode_memory = []
 
-            combined_states = torch.cat(list(states)).cuda()
+            # combined_states = torch.cat(list(states)).cuda()
+            combined_states = concat(states).to_cuda_variable()
 
             state_values = self.network.forward(combined_states)[1].detach()
 
@@ -300,7 +302,8 @@ class PPOStrategy(ReinforcementLearningStrategy):
         states, actions, log_probs, rewards, new_states, advantages, returns = zip(*minibatch)
 
         # transform given tuples into tensors
-        states = torch.cat(list(states)).cuda()
+        # states = torch.cat(list(states)).cuda()
+        states = concat(states).to_cuda_variable()
 
         actions = torch.cat(list(actions)).float().cuda()
 
@@ -308,7 +311,8 @@ class PPOStrategy(ReinforcementLearningStrategy):
 
         rewards = torch.tensor(list(rewards)).float().cuda()
 
-        new_states = torch.cat(list(new_states)).cuda()
+        # new_states = torch.cat(list(new_states)).cuda()
+        new_states = concat(new_states).to_cuda_variable()
 
         advantages = torch.tensor(list(advantages)).cuda()
 

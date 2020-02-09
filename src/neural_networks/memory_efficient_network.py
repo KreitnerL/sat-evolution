@@ -27,6 +27,7 @@ class Memory_efficient_network(nn.Module):
                 num_input_channels_1,
                 num_output_channels,
                 eliminate_genome_dimension=True,
+                eliminate_clause_dimension=True,
                 eliminate_population_dimension=False,
                 dim_elimination_max_pooling=False,
                 num_hidden_layers=1,
@@ -50,7 +51,8 @@ class Memory_efficient_network(nn.Module):
         """
         super().__init__()
         self.num_output_channels = num_output_channels
-        self.eliminiate_genome_dimension = eliminate_genome_dimension
+        self.eliminate_genome_dimension = eliminate_genome_dimension
+        self.eliminate_clause_dimension = eliminate_clause_dimension
         self.eliminate_population_dimension = eliminate_population_dimension
         self.dim_elimination_max_pooling = dim_elimination_max_pooling
         self.num_hidden_layers = num_hidden_layers
@@ -95,7 +97,7 @@ class Memory_efficient_network(nn.Module):
                 self.layers_1.append(nn.Conv1d(num_neurons,num_neurons,1))
 
         # Generate output layers
-        if self.eliminiate_genome_dimension:
+        if self.eliminate_genome_dimension:
             self.output_layer_actor_GxE_E = nn.Conv1d(num_neurons, 1, 1)
             self.output_layer_actor_GxE_1 = nn.Conv1d(num_neurons, 1, 1)
 
@@ -240,7 +242,7 @@ class Memory_efficient_network(nn.Module):
 
         # Eliminate dimensions before the output layers
         if self.dim_elimination_max_pooling:
-            if self.eliminiate_genome_dimension:
+            if self.eliminate_genome_dimension:
                 action_distributions.input_GxE = action_distributions.input_GxE.max(2)[0]
                 action_distributions.input_PxG = action_distributions.input_PxG.max(3)[0]
                 if self.eliminate_population_dimension:
@@ -248,7 +250,7 @@ class Memory_efficient_network(nn.Module):
             values.input_GxE = values.input_GxE.max(2)[0]
             values.input_PxG = values.input_PxG.max(3)[0]
         else:
-            if self.eliminiate_genome_dimension:
+            if self.eliminate_genome_dimension:
                 action_distributions.input_GxE = action_distributions.input_GxE.mean(2)
                 action_distributions.input_PxG = action_distributions.input_PxG.mean(3)
                 if self.eliminate_population_dimension:
@@ -257,7 +259,7 @@ class Memory_efficient_network(nn.Module):
             values.input_PxG = values.input_PxG.mean(3)
 
         # Calculate action output
-        if self.eliminiate_genome_dimension:
+        if self.eliminate_genome_dimension:
             action_distributions = self.pool_conv_sum_nonlin_pool_3D(action_distributions, 
                 self.output_layer_actor_GxE_E, self.output_layer_actor_GxE_1,
                 self.output_layer_actor_PxG_P, self.output_layer_actor_PxG_1,
@@ -267,6 +269,8 @@ class Memory_efficient_network(nn.Module):
             self.output_layer_actor_GxE_GxE,self.output_layer_actor_GxE_G, self.output_layer_actor_GxE_E,
             self.output_layer_actor_PxG_PxG, self.output_layer_actor_PxG_P, self.output_layer_actor_PxG_G,
             self.output_layer_actor_P, self.output_layer_actor_1, pool=False)
+        if self.eliminate_clause_dimension:
+            action_distributions = action_distributions.mean(-1)
 
         # Calculate value approximate
         values = self.pool_conv_sum_nonlin_pool_3D(values, self.output_layer_critic_GxE_E, self.output_layer_critic_GxE_1,
@@ -278,5 +282,4 @@ class Memory_efficient_network(nn.Module):
                             values.input_PxG.sum(2),
                             values.input_P.sum(2),
                             values.input_1.sum(2)), 2).view(-1)
-            
         return action_distributions, values
