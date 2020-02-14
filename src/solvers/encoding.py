@@ -41,14 +41,15 @@ class ProblemInstanceEncoding(EncodingStrategy):
     def encode(self, population: Population, generations_left) -> ME_State:
         """
         :returns: list of tensors with the following attributes:\n
-            - problem instance GxCx2
-            - genome of each individual PxGx2
-            - fitness of each individual Px1
-            - Participation of each variable in clauses Gx1
-            - Participation of each variable in unsatistfied clauses Gx1
-            - Number of clauses 1
-            - Number of  variables 1
-            - Generations left 1
+            - problem instance (2x)1xGxE
+            - genome of each individual (2x)PxGx1
+            - fitness of each individual Px1x1
+            - Participation of each variable in clauses 1xGx1
+            - Participation of each variable in unsatistfied clauses 1xGx1
+            - Satisfied clauses Px1xE
+            - Number of clauses 1x1x1
+            - Number of variables 1x1x1
+            - Generations left 1x1x1
         """
         # Feature 0: Problem instance (2x)GxE
         problem  = torch.tensor(population.cnf.mat).float().permute(0,2,1).unsqueeze(0)
@@ -56,31 +57,35 @@ class ProblemInstanceEncoding(EncodingStrategy):
         # Feature 1: Solution of each individual (genome) (2x)PxG
         population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(1,0,2).unsqueeze(0)
 
-        # Feature 2: Fitness of each individual P
-        population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
-
-        # Feature 3 : Participation in clauses G
+        # Feature 2 : Participation in clauses PxG
         variable_participation = torch.tensor([population.cnf.get_participation() / population.cnf.num_clauses for _ in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 4 : Participation in unsatistfied clauses G
+        # Feature 3 : Participation in unsatistfied clauses PxG
         variable_participation_in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 5 : Number of clauses 1
+        # Feature 4 : Satisfied clauses PxE
+        satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
+
+        # Feature 5: Fitness of each individual P
+        population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
+
+        # Feature 6 : Number of clauses 1
         num_clauses = torch.tensor([population.cnf.num_clauses]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 6 : Number of variables 1
+        # Feature 7 : Number of variables 1
         num_vars = torch.tensor([population.cnf.num_variables]).float().unsqueeze(0).unsqueeze(0)
 
-        # Feature 7: Generations_left 1
+        # Feature 8: Generations_left 1
         generations_left = torch.tensor([generations_left]).float().unsqueeze(0).unsqueeze(0)
 
         return ME_State(problem, 
                         torch.cat((population_data, variable_participation, variable_participation_in_unsatisfied), 1),
+                        satisfied_clauses,
                         population_fitness,
                         torch.cat((num_clauses, num_vars, generations_left), 1))
     
     def num_channels(self):
-        return 2, 4, 1, 3
+        return 2, 4, 1, 1, 3
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """

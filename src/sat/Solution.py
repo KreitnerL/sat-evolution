@@ -2,6 +2,7 @@ import random
 import numpy as np
 import time
 from sat.cnf3 import CNF3
+from torch import Tensor as T
 
 class Solution(object):
     """
@@ -31,7 +32,7 @@ class Solution(object):
 
 
     def evaluate(self, get_unsatisfied=False):
-        self.score, self.variables_in_unsat = self.cnf.evaluate(self.assignments, get_unsatisfied=get_unsatisfied)
+        self.score, self.variables_in_unsat, self.satisfied_clauses = self.cnf.evaluate(self.assignments, get_unsatisfied=get_unsatisfied)
         self.has_unsatisfied = get_unsatisfied
 
     def mutate(self, probability, per_gene=False):
@@ -77,7 +78,7 @@ class Solution(object):
         for _ in range (0, max_variables):
             for var in range(0, self.cnf.num_variables):
                 self.assignments[:,var] = 1-self.assignments[:,var]
-                score, _ = self.cnf.evaluate(assignments)
+                score, _, __ = self.cnf.evaluate(assignments)
                 improvement = score - self.get_score()
                 if improvement > 0 and improvement > best_improvement:
                     best_improvement = improvement
@@ -106,3 +107,8 @@ class Solution(object):
         if not self.has_unsatisfied:
             raise Exception("Unsatisfied not evaluated")
         return self.variables_in_unsat
+
+    def get_satisfied_clauses(self) -> T:
+        if not hasattr(self, 'satisfied_clauses'):
+            raise Exception("Satisfied_clauses not evaluated")
+        return self.satisfied_clauses

@@ -65,7 +65,7 @@ class CNF3(object):
                 mat2d[i]*=unsatisfied[i]
             unsatisfied_count_vector = np.bitwise_or.reduce(mat2d,0)
             
-        return satisfied, unsatisfied_count_vector
+        return satisfied, unsatisfied_count_vector, satisfied_clauses
 
     def get_participation(self):
         """
