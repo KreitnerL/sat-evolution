@@ -1,4 +1,5 @@
 from sat.problem_loader import load_problems
+from timeit import default_timer as timer
 
 batch_size = 32
 pre_training_rounds = 5
@@ -9,6 +10,10 @@ def train_problem_set(solver, problems, generations, output, optimize_every):
 
     with open(output, "w") as f:
         for index in range(0, len(problems)):
+
+            # TIMING
+            start = timer()
+
             problem = problems[index]
             solver.create_population(problem)
             solved = False
@@ -19,19 +24,22 @@ def train_problem_set(solver, problems, generations, output, optimize_every):
                 # print(solver.get_best_score())
                 if solver.is_solved() and not solved:
                     solved = True
-                    print("Solved in", i, "generations")
+                    print("Solved in", i, "generations  -  in", (timer()-start), "sec")
                     f.write(str(i)+'\n')
                     break
 
             if not solved:
-                print("Not solved")
+                print("Not solved  -  in", (timer()-start), "sec")
                 f.write('-1\n')
 
             solver.reset()
             f.flush()
 
             if index > 0 and index % optimize_every == 0:
+                print("\n\noptimizing network...")
+                s = timer()
                 solver.optimize_network()
+                print("optimized network in", timer()-s, "sec\n\n")
 
     solver.optimize_network()
     solver.clear_experience()
