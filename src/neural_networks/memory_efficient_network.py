@@ -159,21 +159,23 @@ class Memory_efficient_network(nn.Module):
 
         # Sum with broadcasting
         sum_PxGxE = torch.tensor(0).float()
-        l = (me_state.input_PxG.unsqueeze(-1),
+        l = [me_state.input_PxG.unsqueeze(-1),
             me_state.input_GxE.unsqueeze(2),
             me_state.input_P.unsqueeze(-1).unsqueeze(-1),
             me_state.input_1.unsqueeze(-1).unsqueeze(-1),
             input_GxE_G.unsqueeze(2).unsqueeze(-1),
             input_GxE_E.unsqueeze(2).unsqueeze(2),
             input_PxG_P.unsqueeze(-1).unsqueeze(-1),
-            input_PxG_G.unsqueeze(2).unsqueeze(-1))
-        for x in l:
-            sum_PxGxE = sum_PxGxE + x
+            input_PxG_G.unsqueeze(2).unsqueeze(-1)]
+        input_GxE_G = input_GxE_E = input_PxG_P = input_PxG_G = me_state = None
+        while len(l) != 0:
+            sum_PxGxE = sum_PxGxE + l.pop()
 
         # Non-linearity
-        self.activation_func(sum_PxGxE)
+        sum_PxGxE = self.activation_func(sum_PxGxE)
 
         # Pooling
+        me_state = ME_State()
         me_state.input_GxE = self.global_pool_func(sum_PxGxE, 2)[0]
         me_state.input_PxG = self.global_pool_func(sum_PxGxE, 4)[0]
         me_state.input_P = self.global_pool_func(me_state.input_PxG, 3)[0]
@@ -207,21 +209,23 @@ class Memory_efficient_network(nn.Module):
 
         # Sum with broadcasting
         sum_PxE = torch.tensor(0)
-        l = (me_state.input_GxE.unsqueeze(2),
+        l = [me_state.input_GxE.unsqueeze(2),
             me_state.input_PxG.unsqueeze(-1),
             me_state.input_P.unsqueeze(-1),
             me_state.input_1.unsqueeze(-1),
             input_GxE_1.unsqueeze(-1),
-            input_PxG_1.unsqueeze(-1))
-        for x in l:
-            sum_PxE = sum_PxE + x
+            input_PxG_1.unsqueeze(-1)]
+        input_GxE_1 = input_PxG_1 = me_state = None
+        while len(l) != 0:
+            sum_PxE = sum_PxE + l.pop()
 
         # Non-linearity
-        self.activation_func(sum_PxE)
+        sum_PxE = self.activation_func(sum_PxE)
 
         if(not pool):
             return sum_PxE
         # Pooling (Note that the genome dimension does not exist)
+        me_state = ME_State()
         me_state.input_GxE = self.global_pool_func(sum_PxE, 2)[0]
         me_state.input_PxG = self.global_pool_func(sum_PxE, 3)[0]
         me_state.input_P = me_state.input_PxG.clone()
@@ -236,6 +240,7 @@ class Memory_efficient_network(nn.Module):
             me_state = self.pool_conv_sum_nonlin_pool_4D(me_state, self.layers_GxE_GxE[i], self.layers_GxE_G[i], self.layers_GxE_E[i],
                                         self.layers_PxG_PxG[i], self.layers_PxG_P[i], self.layers_PxG_G[i],
                                         self.layers_P[i], self.layers_1[i])
+            torch.cuda.empty_cache()
 
         action_distributions = me_state
         values = me_state.clone()

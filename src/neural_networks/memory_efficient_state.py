@@ -8,7 +8,7 @@ class ME_State:
     Encodes a collection of different sized Tensors
     Each Tensor has the form BatchSize x Channels x Dimension(indivdual for every input)
     """
-    def __init__(self, input_GxE: T, input_PxG: T, input_P: T, input_1: T):
+    def __init__(self, input_GxE: T = None, input_PxG: T = None, input_P: T = None, input_1: T = None):
         self.input_GxE = input_GxE
         self.input_PxG = input_PxG
         self.input_P = input_P

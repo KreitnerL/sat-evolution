@@ -35,7 +35,7 @@ def train_problem_set(solver, problems, generations, output, optimize_every):
             solver.reset()
             f.flush()
 
-            if index > 0 and index % optimize_every == 0:
+            if (index+1) % optimize_every == 0:
                 print("\n\noptimizing network...")
                 s = timer()
                 solver.optimize_network()
