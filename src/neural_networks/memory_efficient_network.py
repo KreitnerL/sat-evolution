@@ -251,7 +251,7 @@ class Memory_efficient_network(nn.Module):
         me_state.input_1 = c_1(me_state.input_1)
 
         # Sum with broadcasting
-        sum_PxE = torch.tensor(0)
+        sum_PxE = torch.tensor(0).float()
         l = [me_state.input_GxE.unsqueeze(2),
             me_state.input_PxG.unsqueeze(-1),
             me_state.input_P.unsqueeze(-1),

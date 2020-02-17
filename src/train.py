@@ -5,19 +5,34 @@ from solvers.solvers import SolverWithGeneMutationControl
 from solvers.solvers import SolverWithFitnessShapingCrossover
 from solvers.solvers import SolverWithFitnessShapingSelection
 
+import torch
+import random
 import os.path
 import sys
+
+
+torch.manual_seed(0)
+torch.cuda.manual_seed(0)
+random.seed(0)
 
 encoder = ProblemInstanceEncoding()
 
 print(sys.argv)
 
+##############################################################
+##                  Possible Arguments                      ##
+##############################################################
+
 solver_arg = sys.argv[1]
 outdir = sys.argv[2]
+
+# directory for baseline file
 weightsdir = None
+# e.g. pre:INDEX to start with a specific task
+start_at = None
+
 if len(sys.argv) > 3:
     weightsdir = sys.argv[3]
-start_at = None
 if len(sys.argv) > 4:
     start_at = sys.argv[4]
 

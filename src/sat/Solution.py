@@ -14,7 +14,7 @@ class Solution(object):
         self.cnf = cnf
         # A normalized 2xnum_vars matrix
         self.assignments = assignments
-        random.seed(time.time())
+        # random.seed(time.time())
 
     @staticmethod
     def random(cnf):
@@ -22,7 +22,7 @@ class Solution(object):
         returns a 2xNum_vars matrix
         """
 
-        random.seed(time.time())
+        # random.seed(time.time())
 
         assignments = np.zeros((2,cnf.num_variables), np.int8)
         for i in range(0, cnf.num_variables):
@@ -53,7 +53,7 @@ class Solution(object):
         """
         Perform crossover of two solutions
         """
-        random.seed(time.time())
+        # random.seed(time.time())
 
         assignments = np.zeros((2,self.cnf.num_variables), np.int8)
 

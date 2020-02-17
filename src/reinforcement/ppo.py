@@ -8,6 +8,7 @@ import torch.optim as optim
 from reinforcement.reinforcement import ReinforcementLearningStrategy
 
 from neural_networks.memory_efficient_state import concat
+from utils.training import save_loss
 
 class PPOStrategy(ReinforcementLearningStrategy):
     """
@@ -130,7 +131,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
                 loss.backward()
                 self.optimizer.step()
 
-        print(loss_item_array)
+        save_loss(sum(loss_item_array)/len(loss_item_array), loss_item_array[0], loss_item_array[-1])
         self.actor_experience_store = []
         self.update_exploration_rate()
         torch.cuda.empty_cache()
@@ -314,9 +315,9 @@ class PPOStrategy(ReinforcementLearningStrategy):
         # new_states = torch.cat(list(new_states)).cuda()
         new_states = concat(new_states).to_cuda_variable()
 
-        advantages = torch.tensor(list(advantages)).cuda()
+        advantages = torch.tensor(list(advantages)).float().cuda()
 
-        returns = torch.tensor(list(advantages)).cuda()
+        returns = torch.tensor(list(advantages)).float().cuda()
 
         return states, actions, log_probs, rewards, new_states, advantages, returns
 
