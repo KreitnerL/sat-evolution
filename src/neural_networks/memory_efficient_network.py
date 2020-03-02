@@ -52,6 +52,8 @@ class Memory_efficient_network(nn.Module):
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions.
         """
         super().__init__()
+        print("Creating network with", num_hidden_layers, "hidden layers, ", num_neurons, " neurons")
+
         self.num_output_channels = num_output_channels
         self.eliminate_genome_dimension = eliminate_genome_dimension
         self.eliminate_clause_dimension = eliminate_clause_dimension

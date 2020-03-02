@@ -25,7 +25,7 @@ def validate(solver, problems, output):
         # TIMING
         start = timer()
         problem = problems[index]
-        random.seed(time.time())
+        # random.seed(time.time())
         solver.create_population(problem)
         solved = False
         print("Problem: ", problem.get_filename())
