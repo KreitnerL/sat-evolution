@@ -8,10 +8,11 @@ class ME_State:
     Encodes a collection of different sized Tensors
     Each Tensor has the form BatchSize x Channels x Dimension(indivdual for every input)
     """
-    def __init__(self, input_GxE: T = None, input_PxG: T = None, input_PxE: T = None, input_P: T = None, input_1: T = None):
+    def __init__(self, input_GxE: T = None, input_PxG: T = None, input_PxE: T = None, input_P: T = None, input_G: T = None, input_1: T = None):
         self.input_GxE = input_GxE
         self.input_PxG = input_PxG
         self.input_PxE = input_PxE
+        self.input_G = input_G
         self.input_P = input_P
         self.input_1 = input_1
 
@@ -20,10 +21,11 @@ class ME_State:
         yield self.input_PxG
         yield self.input_PxE
         yield self.input_P
+        yield self.input_G
         yield self.input_1
 
     def get_inputs(self):
-        return self.input_GxE, self.input_PxG, self.input_PxE, self.input_P, self.input_1
+        return self.input_GxE, self.input_PxG, self.input_PxE, self.input_P, self.input_G, self.input_1
 
     def apply_fn(self, fn):
         return ME_State(*tuple(fn(array) if array is not None else None for array in self))

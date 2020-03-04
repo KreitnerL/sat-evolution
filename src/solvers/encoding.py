@@ -57,8 +57,8 @@ class ProblemInstanceEncoding(EncodingStrategy):
         # Feature 1: Solution of each individual (genome) (2x)PxG
         population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(1,0,2).unsqueeze(0)
 
-        # Feature 2 : Participation in clauses PxG
-        variable_participation = torch.tensor([population.cnf.get_participation() / population.cnf.num_clauses for _ in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
+        # Feature 2 : Participation in clauses G
+        variable_participation = torch.tensor(population.cnf.get_participation() / population.cnf.num_clauses).float().unsqueeze(0).unsqueeze(0)
 
         # Feature 3 : Participation in unsatistfied clauses PxG
         variable_participation_in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float().unsqueeze(0).unsqueeze(0)
@@ -79,13 +79,14 @@ class ProblemInstanceEncoding(EncodingStrategy):
         generations_left = torch.tensor([generations_left]).float().unsqueeze(0).unsqueeze(0)
 
         return ME_State(problem, 
-                        torch.cat((population_data, variable_participation, variable_participation_in_unsatisfied), 1),
+                        torch.cat((population_data, variable_participation_in_unsatisfied), 1),
                         satisfied_clauses,
                         population_fitness,
+                        variable_participation,
                         torch.cat((num_clauses, num_vars, generations_left), 1))
     
     def num_channels(self):
-        return 2, 4, 1, 1, 3
+        return 2, 3, 1, 1, 1, 3
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """
