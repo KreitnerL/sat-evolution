@@ -5,46 +5,91 @@ from typing import List, Tuple
 
 class ME_State:
     """
-    Encodes a collection of different sized Tensors
-    Each Tensor has the form BatchSize x Channels x Dimension(indivdual for every input)
+    Wrapper class for a dictionary of different sized Tensors.
+    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xE
+    Each Tensor has the form BxCxPxGxE, the variables being:
+    B: Batchsize
+    C: Channelsize
+    P: Populationsize
+    G: Genomesize
+    E: Equationsize
     """
-    def __init__(self, input_GxE: T = None, input_PxG: T = None, input_PxE: T = None, input_P: T = None, input_G: T = None, input_1: T = None):
-        self.input_GxE = input_GxE
-        self.input_PxG = input_PxG
-        self.input_PxE = input_PxE
-        self.input_G = input_G
-        self.input_P = input_P
-        self.input_1 = input_1
+    def __init__(self, inputs: list(T) = []):
+        """
+        Creates a new dictionary, that maps every input code to its belonging input.
+        :param inputs: A list of tensors of size BxCxPxGxE
+        """
+        self.input_streams = dict()
+        for input_stream in inputs:
+            self.store(input_stream)
 
-    def __iter__(self):
-        yield self.input_GxE
-        yield self.input_PxG
-        yield self.input_PxE
-        yield self.input_P
-        yield self.input_G
-        yield self.input_1
+    def items(self):
+        """
+        returns key, value pairs for all input streams
+        """
+        return self.input_streams.items()
 
-    def get_inputs(self):
-        return self.input_GxE, self.input_PxG, self.input_PxE, self.input_P, self.input_G, self.input_1
+    def keys(self):
+        """
+        returns all input codes of the dictionary
+        """
+        return self.input_streams.keys()
 
-    def apply_fn(self, fn):
-        return ME_State(*tuple(fn(array) if array is not None else None for array in self))
+    def values(self):
+        """
+        returns all input streams of the dictionary
+        """
+        l = self.input_streams.values()
+        l.sort(key=lambda x: x.size())
+        return l
 
-    def clone(self):
+    def get(self, input_code: tuple(int)) -> T:
+        """
+        Given an input code, returns the belonging input stream.
+        :param input_code: A tupel encoding the tensor size, e.g. (1,0,1) belongs to a Tensor with size Px1xE
+        """
+        return self.input_streams[input_code]
+
+    def store(self, input_stream: T):
+        """
+        Adds the given Tensor to the dictionary
+        """
+        self.input_streams[(1 if dim>1 else 0 for dim in input_stream.size())] = input_stream
+
+    def apply_fn(self, fn) -> ME_State:
+        """
+        Returns a copy of the current state with the given function applied to all Tensors in the dictionary.
+        Be aware, that performing actions that change the size of a Tensor will lead to an inconsistent state!
+        """
+        return ME_State([fn(array) if array is not None else None for array in self.values()])
+
+    def clone(self) -> ME_State:
+        """
+        Returns a copy of the given state by cloning all stored Tensors
+        """
         return self.apply_fn(lambda array: array.clone().detach())
 
-    def to_cuda_variable(self):
+    def to_cuda_variable(self) -> ME_State:
+        """
+        Applies the cuda() function to all stored tensors
+        """
         return self.apply_fn(lambda array: Variable(array).cuda())
 
-    def detach(self):
+    def detach(self) -> ME_State:
+        """
+        Detaches all stored Tensors from the GPU
+        """
         return self.apply_fn(lambda array: array.detach())
 
     def __str__(self):
-        return 'ME_State: ' + str([array.size() for array in self])
+        return 'ME_State: ' + str([array.size() for array in self.values()])
 
 def concat(me_states: List[ME_State]) -> ME_State:
-    inputs_array = list(zip(*tuple([me_state.get_inputs() for me_state in me_states])))
+    """
+    Concatenates the given states by concatenating all Tensors that have the same size and returns the resulting state.
+    """
+    inputs_array = list(zip(*tuple([me_state.values() for me_state in me_states])))
     combined_states: List[T] = []
     for inputs in inputs_array:
         combined_states.append(torch.cat(inputs))
-    return ME_State(*tuple(combined_states))
+    return ME_State(combined_states)

@@ -50,9 +50,9 @@ class IndividualMutationControl(PPOStrategy):
         num_output_channels = 2
 
         network = Memory_efficient_network(
-            *encoding_strategy.num_channels(),
+            encoding_strategy.num_channels(),
             num_output_channels,
-             eliminate_genome_dimension=True,
+            eliminate_dimension=(0,1,0),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -133,9 +133,9 @@ class GeneMutationControl(PPOStrategy):
         num_output_channels = 2
 
         network = Memory_efficient_network(
-            *encoding_strategy.num_channels(),
+            encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_genome_dimension=False,
+            eliminate_dimension=(0,0,0),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -203,7 +203,7 @@ class FitnessShapingControl(PPOStrategy):
                  discount_factor=0.99,
                  variance_bias_factor=0.98,
                  num_hidden_layers=1,
-                 num_neurons=128,
+                 num_neurons=38,
                  batch_size=32,
                  clipping_value=0.2,
                  num_training_epochs=4,
@@ -217,9 +217,9 @@ class FitnessShapingControl(PPOStrategy):
         num_output_channels = 1
 
         network = Memory_efficient_network(
-            *encoding_strategy.num_channels(),
+            encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_genome_dimension=True,
+            eliminate_dimension=(0,1,0),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons

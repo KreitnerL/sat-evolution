@@ -8,8 +8,13 @@ import numpy as np
 from neural_networks.memory_efficient_state import ME_State
 from typing import Callable, List
 from neural_networks.utils import init_weights
-
 T = torch.Tensor
+conv_map = {
+    0: nn.Conv1d,
+    1: nn.Conv1d,
+    2: nn.Conv2d,
+    3: nn.Conv3d
+}
 
 class Memory_efficient_network(nn.Module):
     """
@@ -19,382 +24,165 @@ class Memory_efficient_network(nn.Module):
     memory efficent pool_conv_sum_nonlin_pool function will be applied. The result will then be splitted into actor and critic output.
     Dimensions will be removed and the pool_conv_sum_nonlin_pool function will be applied again to form the outputs.
     """
-
     def __init__(self,
-                num_input_channels_GxE,
-                num_input_channels_PxG,
-                num_input_channels_PxE,
-                num_input_channels_P,
-                num_input_channels_G,
-                num_input_channels_1,
-                num_output_channels,
-                eliminate_genome_dimension=True,
-                eliminate_clause_dimension=True,
-                eliminate_population_dimension=False,
+                num_input_channels: dict,
+                num_output_channels: int,
+                eliminate_dimension=(0, 1, 1),
                 dim_elimination_max_pooling=False,
                 num_hidden_layers=1,
                 num_neurons=128,
                 activation_func: type(F.leaky_relu) = F.leaky_relu,
-                global_pool_func: type(T.max) = T.max):
+                global_pool_func: type(lambda *x: T.max(*x)[0]) = lambda *x: T.max(*x)[0]):
         """
-        :param num_input_channels_GxE: Number of input channels of tensors with dimension GxE
-        :param num_input_channels_PxG: Number of input channels of tensors with dimension PxG
-        :param num_input_channels_PxE: Number of input channels of tensors with dimension PxE
-        :param num_input_channels_P: Number of input channels of tensors with dimension P
-        :param num_input_channels_G: Number of input channels of tensors with dimension G
-        :param num_input_channels_1: Number of input channels of tensors with dimension 1
+        :param num_input_channels: Dictionary that assigns a number of channels to each input code
         :param num_output_channels: Number of output channels for the actor component
-        :param eliminate_genome_dimension: Whether to eliminate the 4th dimension of the actor output
-        :param eliminate_population_dimension: Whether to also eliminate the 3rd dimension of the actor output
-        :param dim_eliminiation_max_pooling: Whether to use max- or mean-pooling
+        :param eliminate_dimension: boolean tupel that encodes for each dimension whether it should be removed
+        :param dim_elimination_max_pooling: If true, dimensions will be removed via max pooling
         :param num_hidden_layers: Number of layers between first convolution and the two output layers 
         :param num_neurons: Number of neurons / filters per conv layer
-        :param activation_func: Activation function used as non-linearity.
-        :param global_pool_func: Pooling function used to reduce the sum to the output dimensions.
+        :param activation_func: Activation function used as non-linearity
+        :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
         super().__init__()
-        print("Creating network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons")
-
+        print("Creating network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons.")
         self.num_output_channels = num_output_channels
-        self.eliminate_genome_dimension = eliminate_genome_dimension
-        self.eliminate_clause_dimension = eliminate_clause_dimension
-        self.eliminate_population_dimension = eliminate_population_dimension
+        self.eliminate_dimension = eliminate_dimension
         self.dim_elimination_max_pooling = dim_elimination_max_pooling
         self.num_hidden_layers = num_hidden_layers
-
         self.activation_func = activation_func
         self.global_pool_func = global_pool_func
 
-        # self.input_norm = nn.BatchNorm2d(num_input_channels)
-
-        self.layers_GxE_GxE = nn.ModuleList()
-        self.layers_GxE_G = nn.ModuleList()
-        self.layers_GxE_E = nn.ModuleList()
-        self.layers_PxG_PxG = nn.ModuleList()
-        self.layers_PxG_P = nn.ModuleList()
-        self.layers_PxG_G = nn.ModuleList()
-        self.layers_PxE_PxE = nn.ModuleList()
-        self.layers_PxE_P = nn.ModuleList()
-        self.layers_PxE_E = nn.ModuleList()
-        self.layers_P = nn.ModuleList()
-        self.layers_G = nn.ModuleList()
-        self.layers_1 =  nn.ModuleList()
-
+        self.layers = []
         # Generate input and hidden layers
         for layer_number in range(num_hidden_layers + 1):
-            if layer_number == 0:
-                self.layers_GxE_GxE.append(nn.Conv2d(num_input_channels_GxE, num_neurons, 1))
-                self.layers_GxE_G.append(nn.Conv1d(num_input_channels_GxE, num_neurons, 1))
-                self.layers_GxE_E.append(nn.Conv1d(num_input_channels_GxE, num_neurons, 1))
-
-                self.layers_PxG_PxG.append(nn.Conv2d(num_input_channels_PxG, num_neurons, 1))
-                self.layers_PxG_P.append(nn.Conv1d(num_input_channels_PxG, num_neurons, 1))
-                self.layers_PxG_G.append(nn.Conv1d(num_input_channels_PxG, num_neurons, 1))
-
-                self.layers_PxE_PxE.append(nn.Conv2d(num_input_channels_PxE, num_neurons, 1))
-                self.layers_PxE_P.append(nn.Conv1d(num_input_channels_PxE, num_neurons, 1))
-                self.layers_PxE_E.append(nn.Conv1d(num_input_channels_PxE, num_neurons, 1))
-
-                self.layers_P.append(nn.Conv1d(num_input_channels_P,num_neurons,1))
-                self.layers_G.append(nn.Conv1d(num_input_channels_G,num_neurons,1))
-                self.layers_1.append(nn.Conv1d(num_input_channels_1,num_neurons,1))
-            else:
-                self.layers_GxE_GxE.append(nn.Conv2d(num_neurons, num_neurons, 1))
-                self.layers_GxE_G.append(nn.Conv1d(num_neurons, num_neurons, 1))
-                self.layers_GxE_E.append(nn.Conv1d(num_neurons, num_neurons, 1))
-
-                self.layers_PxG_PxG.append(nn.Conv2d(num_neurons, num_neurons, 1))
-                self.layers_PxG_P.append(nn.Conv1d(num_neurons, num_neurons, 1))
-                self.layers_PxG_G.append(nn.Conv1d(num_neurons, num_neurons, 1))
-
-                self.layers_PxE_PxE.append(nn.Conv2d(num_neurons, num_neurons, 1))
-                self.layers_PxE_P.append(nn.Conv1d(num_neurons, num_neurons, 1))
-                self.layers_PxE_E.append(nn.Conv1d(num_neurons, num_neurons, 1))
-
-                self.layers_P.append(nn.Conv1d(num_neurons,num_neurons,1))
-                self.layers_G.append(nn.Conv1d(num_neurons,num_neurons,1))
-                self.layers_1.append(nn.Conv1d(num_neurons,num_neurons,1))
-
+            self.layers.append(dict())
+            for input_stream in num_input_channels.keys():
+                for input_code in self.get_input_stream_codes(input_stream):
+                    self.layers[layer_number][input_code] = nn.ModuleList()
+                    if layer_number == 0:
+                        self.layers[layer_number][input_code].append(conv_map(sum(input_code[3:]))(num_input_channels[input_code[:3]], num_neurons, 1))
+                    else:
+                        self.layers[layer_number][input_code].append(conv_map(sum(input_code[3:]))(num_neurons, num_neurons, 1))
+        
         # Generate output layers
-        if self.eliminate_genome_dimension:
-            self.output_layer_actor_GxE_E = nn.Conv1d(num_neurons, 1, 1)
-            self.output_layer_actor_GxE_1 = nn.Conv1d(num_neurons, 1, 1)
-
-            self.output_layer_actor_PxG_P = nn.Conv1d(num_neurons, 1, 1)
-            self.output_layer_actor_PxG_1 = nn.Conv1d(num_neurons, 1, 1)
-
-            self.output_layer_actor_PxE_PxE = nn.Conv2d(num_neurons,1,1)
-            self.output_layer_actor_PxE_P = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_PxE_E = nn.Conv1d(num_neurons,1,1)
-            
-            self.output_layer_actor_P = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_G = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_1 = nn.Conv1d(num_neurons,1,1)
-        else:
-            self.output_layer_actor_GxE_GxE = nn.Conv2d(num_neurons, 1, 1)
-            self.output_layer_actor_GxE_G = nn.Conv1d(num_neurons, 1, 1)
-            self.output_layer_actor_GxE_E = nn.Conv1d(num_neurons, 1, 1)
-
-            self.output_layer_actor_PxG_PxG = nn.Conv2d(num_neurons, 1, 1)
-            self.output_layer_actor_PxG_P = nn.Conv1d(num_neurons, 1, 1)
-            self.output_layer_actor_PxG_G = nn.Conv1d(num_neurons, 1, 1)
-
-            self.output_layer_actor_PxE_PxE = nn.Conv2d(num_neurons,1,1)
-            self.output_layer_actor_PxE_P = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_PxE_E = nn.Conv1d(num_neurons,1,1)
-
-            self.output_layer_actor_P = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_G = nn.Conv1d(num_neurons,1,1)
-            self.output_layer_actor_1 = nn.Conv1d(num_neurons,1,1)
-
-        self.output_layer_critic_GxE_E = nn.Conv1d(num_neurons, 1, 1)
-        self.output_layer_critic_GxE_1= nn.Conv1d(num_neurons, 1, 1)
-
-        self.output_layer_critic_PxG_P = nn.Conv1d(num_neurons, 1, 1)
-        self.output_layer_critic_PxG_1 = nn.Conv1d(num_neurons, 1, 1)
-
-        self.output_layer_critic_PxE_PxE = nn.Conv2d(num_neurons,1,1)
-        self.output_layer_critic_PxE_P = nn.Conv1d(num_neurons,1,1)
-        self.output_layer_critic_PxE_E = nn.Conv1d(num_neurons,1,1)
-
-        self.output_layer_critic_P = nn.Conv1d(num_neurons, 1, 1)
-        self.output_layer_critic_G = nn.Conv1d(num_neurons, 1, 1)
-        self.output_layer_critic_1 = nn.Conv1d(num_neurons, 1, 1)
-
+        self.output_layer_actor = dict()
+        for input_stream in num_input_channels.keys():
+            for input_code in self.get_input_stream_codes(input_stream, (0, eliminate_dimension[1], 0)):
+                self.output_layer_actor[input_code] = conv_map[sum(input_code[3:])]
+        self.output_layer_critic = dict()
+        for input_stream in num_input_channels.keys():
+            for input_code in self.get_input_stream_codes(input_stream, (0, 1, 0)):
+                self.output_layer_critic[input_code] = conv_map[sum(input_code[3:])]
+        
         self.apply(init_weights)
 
-    def pool_conv_sum_nonlin_pool_4D(self, me_state: ME_State, c_GxE_GxE, c_GxE_G, c_GxE_E, 
-                    c_PxG_PxG, c_PxG_P, c_PxG_G, c_PxE_PxE, c_PxE_P, c_PxE_E, c_P, c_G, c_1, pool=True):
-        """
-        Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxE, P, ...) applies the global_pool_function,
-        convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs
-        """
-        if me_state.input_PxG.dim() != 4:
-            raise ValueError('Cannot handle input_PxG with dimension', me_state.input_PxG.size())
+    def pool_conv_sum_nonlin_pool(self, me_state: ME_State, conv_layers: dict, pool=True):
+        conv_list = dict()
+        for input_code, input_stream in me_state.items():
+            conv_list[input_code] = input_stream
 
         # Pooling
-        input_GxE_G = self.global_pool_func(me_state.input_GxE, 3)[0]
-        input_GxE_E = self.global_pool_func(me_state.input_GxE, 2)[0]
+        input_stream_codes = list(me_state.keys())
+        for input_code in input_stream_codes:
+            input_stream = me_state.get(input_code)
+            for sub_input_code in self.get_input_stream_codes(input_code):
+                sub_input_stream = input_stream
+                for i, dim in reversed(list(enumerate(sub_input_code[3:]))):
+                    if not dim:
+                        if sub_input_code[i]:
+                            sub_input_stream = self.global_pool_func(sub_input_stream,i)
+                        else:
+                            sub_input_stream = sub_input_stream.squeeze(i)
+                conv_list[sub_input_code] = sub_input_stream
+        me_state = None
 
-        input_PxG_P = self.global_pool_func(me_state.input_PxG, 3)[0]
-        input_PxG_G = self.global_pool_func(me_state.input_PxG, 2)[0]
-
-        input_PxE_P = self.global_pool_func(me_state.input_PxE, 3)[0]
-        input_PxE_E = self.global_pool_func(me_state.input_PxE, 2)[0]
-
-        # Conv
-        me_state.input_GxE = c_GxE_GxE(me_state.input_GxE)
-        input_GxE_G = c_GxE_G(input_GxE_G)
-        input_GxE_E = c_GxE_E(input_GxE_E)
-
-        me_state.input_PxG = c_PxG_PxG(me_state.input_PxG)
-        input_PxG_P = c_PxG_P(input_PxG_P)
-        input_PxG_G = c_PxG_G(input_PxG_G)
-
-        me_state.input_PxE = c_PxE_PxE(me_state.input_PxE)
-        input_PxE_P = c_PxE_P(input_PxE_P)
-        input_PxE_E = c_PxE_E(input_PxE_E)
-
-        me_state.input_P = c_P(me_state.input_P)
-        me_state.input_G = c_G(me_state.input_G)
-        me_state.input_1 = c_1(me_state.input_1)
+        #  Conv
+        for input_code, input_stream in conv_list.items():
+            conv_list[input_code] = conv_layers[input_code](input_stream)
 
         # Sum with broadcasting
         sum_PxGxE = torch.tensor(0).float()
-        l = [me_state.input_PxG.unsqueeze(-1),
-            me_state.input_GxE.unsqueeze(2),
-            me_state.input_PxE.unsqueeze(-2),
-            me_state.input_P.unsqueeze(-1).unsqueeze(-1),
-            me_state.input_G.unsqueeze(2).unsqueeze(-1),
-            me_state.input_1.unsqueeze(-1).unsqueeze(-1),
-            input_GxE_G.unsqueeze(2).unsqueeze(-1),
-            input_GxE_E.unsqueeze(2).unsqueeze(2),
-            input_PxG_P.unsqueeze(-1).unsqueeze(-1),
-            input_PxG_G.unsqueeze(2).unsqueeze(-1),
-            input_PxE_P.unsqueeze(-1).unsqueeze(-1),
-            input_PxE_E.unsqueeze(2).unsqueeze(2)]
-        input_GxE_G = input_GxE_E = input_PxG_P = input_PxG_G = input_PxE_P = input_PxE_E = me_state = None
-        while len(l) != 0:
-            sum_PxGxE = sum_PxGxE + l.pop()
+        for input_code in list(conv_list.keys()):
+            input_stream = conv_list.pop(input_code)
+            for i, dim in enumerate(input_code[3:]):
+                if not dim:
+                    input_stream.unsqueeze(2+i)
+            sum_PxGxE = sum_PxGxE + input_stream
+        
+        if len(conv_list) > 0:
+            raise ValueError('Not all input streams were used! ', conv_list)
 
         # Non-linearity
         sum_PxGxE = self.activation_func(sum_PxGxE)
 
-        # Pooling
-        me_state = ME_State()
-        me_state.input_GxE = self.global_pool_func(sum_PxGxE, 2)[0]
-        me_state.input_PxG = self.global_pool_func(sum_PxGxE, 4)[0]
-        me_state.input_PxE = self.global_pool_func(sum_PxGxE, 3)[0]
-        me_state.input_P = self.global_pool_func(me_state.input_PxG, 3)[0]
-        me_state.input_G = self.global_pool_func(me_state.input_PxG, 2)[0]
-        me_state.input_1 = self.global_pool_func(me_state.input_P, 2)[0].unsqueeze(-1)
-
-        return me_state
-
-    def pool_conv_sum_nonlin_pool_3D(self, me_state: ME_State, c_GxE_E, c_GxE_1, c_PxG_P, c_PxG_1, c_PxE_PxE, c_PxE_P, c_PxE_E, c_P, c_G, c_1, pool=True):
-        """
-        Takes a ME_State of Tensors of size Batch x Channels x Dimension( Dimension being e.g. GxE, P, ...) applies the global_pool_function,
-        convolutes every single array (hence memory efficient) sums everything up (broadcasting), applies the global activation function and pools again for the outputs.
-        """
-        if me_state.input_PxG.dim() != 3:
-            raise ValueError('Cannot handle input_PxG with dimension', me_state.input_PxG.size())
-        # Genome Dimension has been removed
-
-        # Pooling
-        input_GxE_1 = self.global_pool_func(me_state.input_GxE, 2, keepdim=True)[0]
-
-        input_PxG_1 = self.global_pool_func(me_state.input_PxG, 2, keepdim=True)[0]
-
-        input_PxE_P = self.global_pool_func(me_state.input_PxE, 3)[0]
-        input_PxE_E = self.global_pool_func(me_state.input_PxE, 2)[0]
-
-        # Conv
-        me_state.input_GxE = c_GxE_E(me_state.input_GxE)
-        input_GxE_1 = c_GxE_1(input_GxE_1)
-
-        me_state.input_PxG = c_PxG_P(me_state.input_PxG)
-        input_PxG_1 = c_PxG_1(input_PxG_1)
-
-        me_state.input_PxE = c_PxE_PxE(me_state.input_PxE)
-        input_PxE_P = c_PxE_P(input_PxE_P)
-        input_PxE_E = c_PxE_E(input_PxE_E)
-
-        me_state.input_P = c_P(me_state.input_P)
-        me_state.input_G = c_G(me_state.input_G)
-        me_state.input_1 = c_1(me_state.input_1)
-
-        # Sum with broadcasting
-        sum_PxE = torch.tensor(0).float()
-        l = [me_state.input_GxE.unsqueeze(2),
-            me_state.input_PxG.unsqueeze(-1),
-            me_state.input_PxE,
-            me_state.input_P.unsqueeze(-1),
-            me_state.input_G.unsqueeze(-1),
-            me_state.input_1.unsqueeze(-1),
-            input_GxE_1.unsqueeze(-1),
-            input_PxG_1.unsqueeze(-1),
-            input_PxE_P.unsqueeze(-1),
-            input_PxE_E.unsqueeze(2)]
-        input_GxE_1 = input_PxG_1 = input_PxE_P = input_PxE_E = me_state = None
-        while len(l) != 0:
-            sum_PxE = sum_PxE + l.pop()
-
-        # Non-linearity
-        sum_PxE = self.activation_func(sum_PxE)
-
         if(not pool):
-            return sum_PxE
-        # Pooling (Note that the genome dimension does not exist)
+            return self.global_pool_func(sum_PxGxE, 3)
+
+        # Pooling
         me_state = ME_State()
-        me_state.input_GxE = self.global_pool_func(sum_PxE, 2)[0]
-        me_state.input_PxG = self.global_pool_func(sum_PxE, 3)[0]
-        me_state.input_PxE = sum_PxE
-        me_state.input_P = me_state.input_PxG.clone()
-        me_state.input_G = self.global_pool_func(me_state.input_P, 2, keepdim=True)[0]
-        me_state.input_1 = me_state.input_G.clone()
+        for input_code in input_stream_codes:
+            input_stream = sum_PxGxE
+            for i, dim in enumerate(input_code):
+                if not dim:
+                    input_stream = self.global_pool_func(input_stream, 2+i, keepdim=True)
+            me_state.store(input_stream)
         
         return me_state
-
 
     def forward(self, me_state: ME_State):
         for i in range(self.num_hidden_layers + 1):
             # Pool, Conv, Sum
-            me_state = self.pool_conv_sum_nonlin_pool_4D(
-                me_state=me_state,
-                c_GxE_GxE=self.layers_GxE_GxE[i],
-                c_GxE_G=self.layers_GxE_G[i],
-                c_GxE_E=self.layers_GxE_E[i],
-                c_PxG_PxG=self.layers_PxG_PxG[i],
-                c_PxG_P=self.layers_PxG_P[i],
-                c_PxG_G=self.layers_PxG_G[i],
-                c_PxE_PxE=self.layers_PxE_PxE[i],
-                c_PxE_P=self.layers_PxE_P[i],
-                c_PxE_E=self.layers_PxE_E[i],
-                c_P=self.layers_P[i],
-                c_G=self.layers_G[i],
-                c_1=self.layers_1[i])
+            me_state = self.pool_conv_sum_nonlin_pool(me_state, self.layers[i])
             torch.cuda.empty_cache()
 
-        action_distributions = me_state
-        values = me_state.clone()
+        action_distributions = ME_State()
+        values = ME_State()
 
         # Eliminate dimensions before the output layers
-        if self.dim_elimination_max_pooling:
-            if self.eliminate_genome_dimension:
-                action_distributions.input_GxE = action_distributions.input_GxE.max(2)[0]
-                action_distributions.input_PxG = action_distributions.input_PxG.max(3)[0]
-                action_distributions.input_G = action_distributions.input_G.max(2, keepdim=True)[0]
-                if self.eliminate_population_dimension:
-                    action_distributions.input_PxG = action_distributions.input_PxG.max(2)[0].unsqueeze(2)
-                    action_distributions.input_PxE = action_distributions.input_PxE.max(2)[0].unsqueeze(2)
-            values.input_GxE = values.input_GxE.max(2)[0]
-            values.input_PxG = values.input_PxG.max(3)[0]
-            values.input_G = values.input_G.max(2, keepdim=True)[0]
-        else:
-            if self.eliminate_genome_dimension:
-                action_distributions.input_GxE = action_distributions.input_GxE.mean(2)
-                action_distributions.input_PxG = action_distributions.input_PxG.mean(3)
-                action_distributions.input_G = action_distributions.input_G.mean(2, keepdim=True)
-                if self.eliminate_population_dimension:
-                    action_distributions.input_PxG = action_distributions.input_PxG.mean(2).unsqueeze(2)
-                    action_distributions.input_PxE = action_distributions.input_PxE.mean(2).unsqueeze(2)
-            values.input_GxE = values.input_GxE.mean(2)
-            values.input_PxG = values.input_PxG.mean(3)
-            values.input_G = values.input_G.mean(2, keepdim=True)
+        for input_code, input_stream in me_state.items():
+            code = tuple(np.subtract(input_code, self.eliminate_dimensions))
+            if code == input_code:
+                action_distributions.store(input_stream)
+            else:
+                for i, dim in enumerate(self.eliminate_dimensions):
+                    if dim:
+                        action_distributions.store(input_stream.max(2+i, keepdim=True)[0])
+
+        for input_code, input_stream in me_state.items():
+            if not input_code[1]:
+                values.store(input_stream)
+            else:
+                input_stream = input_stream.mean(3, keepdim=True)
+                values.store(input_stream)
 
         # Calculate action output
-        if self.eliminate_genome_dimension:
-            action_distributions = self.pool_conv_sum_nonlin_pool_3D(
-                me_state=action_distributions,
-                c_GxE_E=self.output_layer_actor_GxE_E,
-                c_GxE_1=self.output_layer_actor_GxE_1,
-                c_PxG_P=self.output_layer_actor_PxG_P,
-                c_PxG_1=self.output_layer_actor_PxG_1,
-                c_PxE_PxE=self.output_layer_actor_PxE_PxE,
-                c_PxE_P=self.output_layer_actor_PxE_P,
-                c_PxE_E=self.output_layer_actor_PxE_E,
-                c_P=self.output_layer_actor_P,
-                c_G=self.output_layer_actor_G,
-                c_1=self.output_layer_actor_1,
-                pool=False)
-        else:
-            action_distributions = self.pool_conv_sum_nonlin_pool_4D(
-                me_state=action_distributions, 
-                c_GxE_GxE=self.output_layer_actor_GxE_GxE,
-                c_GxE_G=self.output_layer_actor_GxE_G,
-                c_GxE_E=self.output_layer_actor_GxE_E,
-                c_PxG_PxG=self.output_layer_actor_PxG_PxG,
-                c_PxG_P=self.output_layer_actor_PxG_P,
-                c_PxG_G=self.output_layer_actor_PxG_G,
-                c_PxE_PxE=self.output_layer_actor_PxE_PxE[i],
-                c_PxE_P=self.output_layer_actor_PxE_P[i],
-                c_PxE_E=self.output_layer_actor_PxE_E[i],
-                c_P=self.output_layer_actor_P,
-                c_G=self.output_layer_actor_G,
-                c_1=self.output_layer_actor_1,
-                pool=False)
-        if self.eliminate_clause_dimension:
-            action_distributions = action_distributions.mean(-1)
+        action_distributions = self.pool_conv_sum_nonlin_pool(action_distributions, self.output_layer_actor, pool=False)
 
         # Calculate value approximate
-        values = self.pool_conv_sum_nonlin_pool_3D(
-            me_state=values,
-            c_GxE_E=self.output_layer_critic_GxE_E,
-            c_GxE_1=self.output_layer_critic_GxE_1,
-            c_PxG_P=self.output_layer_critic_PxG_P,
-            c_PxG_1=self.output_layer_critic_PxG_1,
-            c_PxE_PxE=self.output_layer_critic_PxE_PxE,
-            c_PxE_P=self.output_layer_critic_PxE_P,
-            c_PxE_E=self.output_layer_critic_PxE_E,
-            c_P=self.output_layer_critic_P,
-            c_G=self.output_layer_critic_G,
-            c_1=self.output_layer_critic_1)
+        values = self.pool_conv_sum_nonlin_pool(action_distributions, self.output_layer_critic)
 
         # Sum everything up
-        values = sum((values.input_GxE.sum(2),
-                        values.input_PxG.sum(2),
-                        values.input_PxE.sum(2).sum(2),
-                        values.input_P.sum(2),
-                        values.input_G.sum(2),
-                        values.input_1.sum(2)), 2).view(-1)
+        l = []
+        for input_code, input_stream in values.items():
+            for i, dim in enumerate(input_code):
+                if dim:
+                    input_stream = input_stream.sum(2)
+                else:
+                    input_stream = input_stream.squeeze(2)
+            l.append(input_stream)
+        values = sum(l, 2).view(-1)
+
         return action_distributions, values
+
+    def get_input_stream_codes(self, input_code: tuple(int), eliminate_dimensions = (0,0,0)) -> list(tuple(int)):
+        """
+        Calculates all input stream the given input devides into and returns their encodings
+        :param input_code: the encoding of the input stream
+        :param eliminate_dimensions: tuple that encodes all dimensions that are eliminated
+        """
+        input_code = tuple(np.subtract(input_code,  eliminate_dimensions))
+        inputs = [input_code+input_code]
+        for i, dim in enumerate(input_code):
+            if dim:
+                inputs.append(input_code + tuple(0 if j==i else input_code[j] for j in range(3)))
+        return inputs
