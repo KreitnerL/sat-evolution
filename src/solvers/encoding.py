@@ -51,7 +51,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
             - Number of variables 1x1x1
             - Generations left 1x1x1
         """
-        P = population.size()
+        P = population.size
         G = population.cnf.num_variables
         E = population.cnf.num_clauses
         # Feature 0: Problem instance (2x)1xGxE
@@ -67,7 +67,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
         variable_participation_in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,G,1)
 
         # Feature 4 : Satisfied clauses Px1xE
-        satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().view(1,2,P,1,E)
+        satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().view(1,1,P,1,E)
 
         # Feature 5: Fitness of each individual Px1x1
         population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().view(1,1,P,1,1)

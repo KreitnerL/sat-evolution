@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from torch import Tensor as T
 from torch.autograd import Variable
@@ -14,7 +15,7 @@ class ME_State:
     G: Genomesize
     E: Equationsize
     """
-    def __init__(self, inputs: list(T) = []):
+    def __init__(self, inputs: List[T] = []):
         """
         Creates a new dictionary, that maps every input code to its belonging input.
         :param inputs: A list of tensors of size BxCxPxGxE
@@ -39,11 +40,11 @@ class ME_State:
         """
         returns all input streams of the dictionary
         """
-        l = self.input_streams.values()
+        l = list(self.input_streams.values())
         l.sort(key=lambda x: x.size())
         return l
 
-    def get(self, input_code: tuple(int)) -> T:
+    def get(self, input_code: Tuple[int]) -> T:
         """
         Given an input code, returns the belonging input stream.
         :param input_code: A tupel encoding the tensor size, e.g. (1,0,1) belongs to a Tensor with size Px1xE
@@ -53,8 +54,9 @@ class ME_State:
     def store(self, input_stream: T):
         """
         Adds the given Tensor to the dictionary
+        :param input_stream: the tensor that should be stored
         """
-        self.input_streams[(1 if dim>1 else 0 for dim in input_stream.size())] = input_stream
+        self.input_streams[tuple(1 if dim>1 else 0 for dim in input_stream.size()[2:])] = input_stream
 
     def apply_fn(self, fn) -> ME_State:
         """
