@@ -40,13 +40,13 @@ if len(sys.argv) > 4:
 population_size = 100
 
 solverMap = {
-    'gene': SolverWithGeneMutationControl(encoder, population_size, num_hidden_layers=3),
-    'individual': SolverWithIndividualMutationControl(encoder, population_size, num_hidden_layers=3),
-    'crossover': SolverWithFitnessShapingCrossover(encoder, population_size, num_hidden_layers=3),
-    'selection': SolverWithFitnessShapingSelection(encoder, population_size, num_hidden_layers=3)
+    'gene': SolverWithGeneMutationControl,
+    'individual': SolverWithIndividualMutationControl,
+    'crossover': SolverWithFitnessShapingCrossover,
+    'selection': SolverWithFitnessShapingSelection
 }
 
-solver = solverMap.get(solver_arg, None)
+solver = solverMap.get(solver_arg, None)(encoder, population_size, num_hidden_layers=2)
 if solver is not None:
     if weightsdir is not None and os.path.isfile(weightsdir + "baseline"):
         print("loading baseline")

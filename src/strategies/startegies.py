@@ -204,7 +204,7 @@ class FitnessShapingControl(PPOStrategy):
                  variance_bias_factor=0.98,
                  num_hidden_layers=1,
                  num_neurons=38,
-                 batch_size=32,
+                 batch_size=16,
                  clipping_value=0.2,
                  num_training_epochs=4,
                  dim_elimination_max_pooling=False,
@@ -219,7 +219,7 @@ class FitnessShapingControl(PPOStrategy):
         network = Memory_efficient_network(
             encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_dimension=(0,1,0),
+            eliminate_dimension=(0,1,1),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
