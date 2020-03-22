@@ -51,12 +51,17 @@ class ME_State:
         """
         return self.input_streams[input_code]
 
-    def store(self, input_stream: T):
+    def store(self, input_stream: T, overwrite=False):
         """
-        Adds the given Tensor to the dictionary
+        Adds the given Tensor to the dictionary.
         :param input_stream: the tensor that should be stored
+        :param overwrite: (Optional) If True, the previous entry will be overwritten. The entries will be concatenated along the channels dimension otherwise. Default=False 
         """
-        self.input_streams[tuple(1 if dim>1 else 0 for dim in input_stream.size()[2:])] = input_stream
+        code = self.getCode(input_stream.size())
+        if overwrite or code not in self.input_streams:
+            self.input_streams[code] = input_stream
+        else:
+            self.input_streams[code] = torch.cat([self.input_streams[code], input_stream], 1)
 
     def apply_fn(self, fn) -> ME_State:
         """
@@ -85,6 +90,13 @@ class ME_State:
 
     def __str__(self):
         return 'ME_State: ' + str([array.size() for array in self.values()])
+
+    def getCode(self, size: Tuple[int]) -> Tuple[int]:
+        """
+        Return the store code for a given Tensor size.
+        :param size: Tuple of form [batch, channel, P, G, E]
+        """
+        return tuple(1 if dim>1 else 0 for dim in size[2:])
 
 def concat(me_states: List[ME_State]) -> ME_State:
     """

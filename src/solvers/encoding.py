@@ -82,11 +82,14 @@ class ProblemInstanceEncoding(EncodingStrategy):
         generations_left = torch.tensor([generations_left]).float().view(1,1,1,1,1)
 
         return ME_State([problem,
-                        torch.cat((population_data, variable_participation_in_unsatisfied), 1),
+                        population_data,
+                        variable_participation_in_unsatisfied,
                         satisfied_clauses,
                         population_fitness,
                         variable_participation,
-                        torch.cat((num_clauses, num_vars, generations_left), 1)])
+                        num_clauses, 
+                        num_vars, 
+                        generations_left])
     
     def num_channels(self):
         d = {
