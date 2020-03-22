@@ -12,8 +12,8 @@ T = torch.Tensor
 
 class Memory_efficient_network(nn.Module):
     """
-    This network can process inputs of different sized dimensions.
-    The outputs are a 5D or 4D tensor actor ouput and a 0D tensor as critic output. The overall structure is as follows: \n
+    This network can process features of different sized dimensions without broadcasting, leading to memory efficency.
+    The outputs are a 2D tensor actor ouput and a 0D tensor as critic output. The overall structure is as follows: \n
     The inputs will be sent to a deep neural network with size num_hidden_layers and num_neurons neurons. In each layer the
     memory efficent pool_conv_sum_nonlin_pool function will be applied. The result will then be splitted into actor and critic output.
     Dimensions will be removed and the pool_conv_sum_nonlin_pool function will be applied again to form the outputs.

@@ -15,6 +15,10 @@ conv_map = {
 }
 
 class Pool_conv_sum_nonlin_pool(nn.Module):
+    """
+    Submodule that takes different sized feature tensors and applies pooling, convolution, summing with broadcasting, a non-linearity and pooling.
+    All features are convoluted by their very own conv-layer, so that they do not have to be concatenated, leading to a more memory efficent implementation.
+    """
 
     def __init__(
         self, 
@@ -23,6 +27,14 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         eliminate_dimension: Tuple[int] = (0,0,0),
         activation_func: type(F.leaky_relu) = F.leaky_relu,
         global_pool_func: type(torchMax) = torchMax):
+        """
+        Generates a submodule that can take a ME_State (list of features) with the given feature dimensions and returns either a concatenated tensor or a ME_State.
+        :param num_input_channels: Dictionary that assigns a number of channels to each input code
+        :param num_output_channels:  Dictionary that assigns a number of output channels to each input code
+        :param eliminate_dimension: boolean tupel that encodes for each dimension whether it should be removed
+        :param activation_func: Activation function used as non-linearity
+        :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
+        """
         super().__init__()
         self.activation_func = activation_func
         self.global_pool_func = global_pool_func

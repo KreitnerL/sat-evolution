@@ -7,12 +7,12 @@ from typing import List, Tuple
 class ME_State:
     """
     Wrapper class for a dictionary of different sized Tensors.
-    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xE
-    Each Tensor has the form BxCxPxGxE, the variables being:
-    B: Batchsize
-    C: Channelsize
-    P: Populationsize
-    G: Genomesize
+    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xE.
+    Each Tensor has the form BxCxPxGxE, the variables being:\n
+    B: Batchsize \n
+    C: Channelsize \n
+    P: Populationsize \n
+    G: Genomesize \n
     E: Equationsize
     """
     def __init__(self, inputs: List[T] = []):
