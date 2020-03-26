@@ -77,10 +77,10 @@ class IndividualMutationControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state):
+    def select_action(self, state: ME_State):
         self.optimizer.zero_grad()
 
-        distribution_params, _ = self.network(state.to_cuda_variable())
+        distribution_params, _, memory = self.network(state.to_cuda_variable())
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -95,7 +95,7 @@ class IndividualMutationControl(PPOStrategy):
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
-        return action.detach()
+        return action.detach(), [m.detach() for m in memory]
 
     def create_distribution(self, distribution_params):
             alpha = F.softplus(distribution_params[:, 0, :]) + 1
@@ -160,10 +160,10 @@ class GeneMutationControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state):
+    def select_action(self, state: ME_State):
         self.optimizer.zero_grad()
 
-        distribution_params, _ = self.network(state.to_cuda_variable())
+        distribution_params, _, memory = self.network(state.to_cuda_variable())
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -178,7 +178,7 @@ class GeneMutationControl(PPOStrategy):
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
-        return action.detach()
+        return action.detach(), [m.detach() for m in memory]
 
     def create_distribution(self, distribution_params):
             alpha = F.softplus(distribution_params[:, 0, :]) + 1
@@ -247,7 +247,7 @@ class FitnessShapingControl(PPOStrategy):
     def select_action(self, state: ME_State):
         self.optimizer.zero_grad()
 
-        distribution_params, _ = self.network(state.to_cuda_variable())
+        distribution_params, _, memory = self.network(state.to_cuda_variable())
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -262,7 +262,7 @@ class FitnessShapingControl(PPOStrategy):
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
-        return action.detach()
+        return action.detach(), [m.detach() for m in memory]
 
     def create_distribution(self, distribution_params):
         variance = 0.00001 + F.softplus(distribution_params[:, 0, :])

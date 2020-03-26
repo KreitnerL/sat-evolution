@@ -42,6 +42,7 @@ class Memory_efficient_network(nn.Module):
         self.eliminate_dimension = eliminate_dimension
         self.dim_elimination_max_pooling = dim_elimination_max_pooling
         self.num_hidden_layers = num_hidden_layers
+        self.memory_dim = dict()
 
         neurons_dict: dict = dict.fromkeys(num_input_channels, num_neurons)
 
@@ -49,29 +50,56 @@ class Memory_efficient_network(nn.Module):
         # Generate input and hidden layers
         for layer_number in range(num_hidden_layers + 1):
             if layer_number == 0:
-                self.layers.append(Pool_conv_sum_nonlin_pool(num_input_channels, num_neurons, (0,0,0), activation_func, global_pool_func))
+                self.layers.append(Pool_conv_sum_nonlin_pool(
+                    num_input_channels=num_input_channels,
+                    num_output_channels=num_neurons,
+                    activation_func=activation_func,
+                    global_pool_func=global_pool_func))
             else:
-                self.layers.append(Pool_conv_sum_nonlin_pool(neurons_dict, num_neurons, (0,0,0), activation_func, global_pool_func))
+                self.layers.append(Pool_conv_sum_nonlin_pool(
+                    num_input_channels=neurons_dict,
+                    num_output_channels=num_neurons,
+                    activation_func=activation_func,
+                    global_pool_func=global_pool_func))
         
         # Generate output layers
-        self.output_layer_actor = Pool_conv_sum_nonlin_pool(neurons_dict, num_output_channels, eliminate_dimension, activation_func, global_pool_func)
-        self.output_layer_critic = Pool_conv_sum_nonlin_pool(neurons_dict, num_output_channels, (0, 1, 0), activation_func, global_pool_func)
+        self.output_layer_actor = Pool_conv_sum_nonlin_pool(
+            num_input_channels=neurons_dict,
+            num_output_channels=num_output_channels,
+            eliminate_dimension=eliminate_dimension,
+            activation_func=activation_func,
+            global_pool_func=global_pool_func)
+
+        self.output_layer_critic = Pool_conv_sum_nonlin_pool(
+            num_input_channels=neurons_dict,
+            num_output_channels=num_output_channels,
+            eliminate_dimension=(0,1,0),
+            activation_func=activation_func,
+            global_pool_func=global_pool_func)
 
         self.apply(init_weights)
         print("Created network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons and", getNumberParams(self), 'trainable paramters')
 
-    def forward(self, me_state: ME_State):
+    def forward(self, input_t: ME_State):
+        memory_t = input_t.getMemory()
+        if not memory_t:
+            memory_t = [torch.zeros(1,1, p, g, e).to_cuda_variable() for p,g,e in self.memory_dim]
+
+        # Concat input and hiddent state
+        for value in memory_t:
+            input_t.store(value)
+
         for i in range(self.num_hidden_layers + 1):
-            me_state = self.layers[i](me_state)
+            input_t = self.layers[i](input_t)
             torch.cuda.empty_cache()
 
         pool_func = torchMax if self.dim_elimination_max_pooling else T.mean
 
         # Calculate action output
-        action_distributions = self.output_layer_actor(me_state, pool=False, eliminate_dimension=self.eliminate_dimension, pool_func=pool_func)
+        action_distributions = self.output_layer_actor(input_t, pool=False, pool_func=pool_func)
 
         # Calculate value approximate
-        values = self.output_layer_critic(me_state, eliminate_dimension=(0,1,0), pool_func=pool_func)
+        values = self.output_layer_critic(input_t, pool_func=pool_func)
 
         # Sum everything up
         l = []
@@ -84,7 +112,7 @@ class Memory_efficient_network(nn.Module):
             l.append(input_stream)
         values = sum(l, 2).view(-1)
 
-        return action_distributions, values
+        return action_distributions, values, memory_t
 
 def getNumberParams(network):
     num_params = 0

@@ -15,11 +15,13 @@ class ME_State:
     G: Genomesize \n
     E: Equationsize
     """
-    def __init__(self, inputs: List[T] = []):
+    def __init__(self, inputs: List[T] = [], memory: List[T] = []):
         """
         Creates a new dictionary, that maps every input code to its belonging input.
         :param inputs: A list of tensors of size BxCxPxGxE
         """
+        self.memory = dict()
+        self.storeMemory(memory)
         self.input_streams = dict()
         for input_stream in inputs:
             self.store(input_stream)
@@ -51,6 +53,9 @@ class ME_State:
         """
         return self.input_streams[input_code]
 
+    def getMemory(self) -> List[T]:
+        return self.memory.values()
+
     def store(self, input_stream: T, overwrite=False):
         """
         Adds the given Tensor to the dictionary.
@@ -63,12 +68,28 @@ class ME_State:
         else:
             self.input_streams[code] = torch.cat([self.input_streams[code], input_stream], 1)
 
+    def storeMemory(self, memory: List[T]):
+        """
+        Adds the given Tensor to the memory.
+        :param input_stream: the tensor that should be stored
+        :param overwrite: (Optional) If True, the previous entry will be overwritten. The entries will be concatenated along the channels dimension otherwise. Default=False 
+        """
+        for input_stream in memory:
+            code = self.getCode(input_stream.size())
+            if code not in self.memory:
+                self.memory[code] = input_stream
+            else:
+                self.memory[code] = torch.cat([self.memory[code], input_stream], 1)
+
     def apply_fn(self, fn) -> ME_State:
         """
         Returns a copy of the current state with the given function applied to all Tensors in the dictionary.
         Be aware, that performing actions that change the size of a Tensor will lead to an inconsistent state!
         """
-        return ME_State([fn(array) if array is not None else None for array in self.values()])
+        return ME_State(
+            [fn(array) if array is not None else None for array in self.values()],
+            [fn(value) for value in self.memory.values()]
+        )
 
     def clone(self) -> ME_State:
         """
@@ -89,7 +110,7 @@ class ME_State:
         return self.apply_fn(lambda array: array.detach())
 
     def __str__(self):
-        return 'ME_State: ' + str([array.size() for array in self.values()])
+        return 'ME_State: ' + str([array.size() for array in self.values()] + str([array.size() for array in self.memory]))
 
     def getCode(self, size: Tuple[int]) -> Tuple[int]:
         """
@@ -103,7 +124,5 @@ def concat(me_states: List[ME_State]) -> ME_State:
     Concatenates the given states by concatenating all Tensors that have the same size and returns the resulting state.
     """
     inputs_array = list(zip(*tuple([me_state.values() for me_state in me_states])))
-    combined_states: List[T] = []
-    for inputs in inputs_array:
-        combined_states.append(torch.cat(inputs))
-    return ME_State(combined_states)
+    memory_array = list(zip(*tuple([me_state.getMemory() for me_state in me_states])))
+    return ME_State([torch.cat(inputs) for inputs in inputs_array], [torch.cat(inputs) for inputs in memory_array])
