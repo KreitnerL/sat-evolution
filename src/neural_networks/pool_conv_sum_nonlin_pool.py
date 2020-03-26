@@ -24,6 +24,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         self, 
         num_input_channels: dict, 
         num_output_channels: int, 
+        output_stream_codes: List[int] = None,
         eliminate_dimension: Tuple[int] = (0,0,0),
         activation_func: type(F.leaky_relu) = F.leaky_relu,
         global_pool_func: type(torchMax) = torchMax):
@@ -36,40 +37,28 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
         super().__init__()
+        self.input_stream_codes = {code: get_input_stream_codes(code, eliminate_dimension) for code in num_input_channels.keys()}
+        self.output_stream_codes = output_stream_codes if output_stream_codes is not None else self.input_stream_codes.keys()
         self.activation_func = activation_func
         self.global_pool_func = global_pool_func
+        self.eliminate_dimension = eliminate_dimension
 
         # Generate Conv Layers
         self.layers = nn.ModuleDict()
-        for input_stream in num_input_channels.keys():
-            for input_code in self.get_input_stream_codes(input_stream, eliminate_dimension):
+        for l in self.input_stream_codes.values():
+            for input_code in l:
                 self.layers[str(input_code)] = conv_map[sum(input_code[3:])](num_input_channels[input_code[:3]], num_output_channels, 1)
 
-    def get_input_stream_codes(self, input_code: Tuple[int], eliminate_dimension: Tuple[int] = (0,0,0)) -> List[Tuple[int]]:
-        """
-        Calculates all input stream the given input devides into and returns their encodings
-        :param input_code: the encoding of the input stream
-        :param eliminate_dimension: tuple that encodes all dimensions that are eliminated
-        """
-        inputs = []
-        code = tuple(1*np.greater(input_code, eliminate_dimension))
-        inputs = [input_code+code]
-        if sum(code) > 1:
-            for i, dim in enumerate(code):
-                if dim and not eliminate_dimension[i]:
-                    inputs.append(input_code + tuple(0 if j==i else code[j] for j in range(3)))
-        return inputs
-
-    def forward(self, me_state: ME_State, pool=True, eliminate_dimension=(0,0,0), pool_func=None):
+    def forward(self, me_state: ME_State, pool=True, pool_func=None):
+        self.checkInput(me_state)
         if not pool_func:
             pool_func = self.global_pool_func
         conv_list = dict()
 
         # Pooling
-        input_stream_codes = list(me_state.keys())
-        for input_code in input_stream_codes:
+        for input_code, sub_input_code_list in self.input_stream_codes.items():
             input_stream = me_state.get(input_code)
-            for sub_input_code in self.get_input_stream_codes(input_code, eliminate_dimension):
+            for sub_input_code in sub_input_code_list:
                 sub_input_stream = input_stream
                 for i, dim in reversed(list(enumerate(sub_input_code[3:]))):
                     if not dim:
@@ -103,7 +92,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
 
         # Pooling
         me_state = ME_State()
-        for input_code in input_stream_codes:
+        for input_code in self.output_stream_codes:
             input_stream = sum_PxGxE
             for i, dim in enumerate(input_code):
                 if not dim:
@@ -111,3 +100,22 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
             me_state.store(input_stream)
         
         return me_state
+
+    def checkInput(self, me_state: ME_State):
+        if set(me_state.keys()) != set(self.input_stream_codes.keys()):
+            raise ValueError(str(set(me_state.keys())) + ' != ' + str(set(self.input_stream_codes.keys())))
+
+def get_input_stream_codes(input_code: Tuple[int], eliminate_dimension: Tuple[int] = (0,0,0)) -> List[Tuple[int]]:
+        """
+        Calculates all input stream the given input devides into and returns their encodings
+        :param input_code: the encoding of the input stream
+        :param eliminate_dimension: tuple that encodes all dimensions that are eliminated
+        """
+        inputs = []
+        code = tuple(1*np.greater(input_code, eliminate_dimension))
+        inputs = [input_code+code]
+        if sum(code) > 1:
+            for i, dim in enumerate(code):
+                if dim and not eliminate_dimension[i]:
+                    inputs.append(input_code + tuple(0 if j==i else code[j] for j in range(3)))
+        return inputs
