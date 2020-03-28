@@ -26,7 +26,7 @@ class SatSolver(object):
         self.population = Population.random(problem, self.population_size)
         self.evaluation_function(self.population)
         self.problem = problem
-        self.memory = []
+        self.memory = None
 
     @abstractmethod
     def perform_one_generation(self, generations_left):
@@ -112,8 +112,7 @@ class SolverWithIndividualMutationControl(SatSolver):
         self.population.selection(self.population_size)
         self.evaluation_function(self.population)
 
-        state = self.input_encoder.encode(self.population, generations_left)
-        state.storeMemory(self.memory)
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
         mutation_rates, self.memory = self.strategy.select_action(state)
         mutation_rates = mutation_rates.data.cpu().numpy()[0]
 
@@ -150,8 +149,7 @@ class SolverWithGeneMutationControl(SatSolver):
         self.population.selection(self.population_size)
         self.evaluation_function(self.population)
 
-        state = self.input_encoder.encode(self.population, generations_left)
-        state.storeMemory(self.memory)
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
         mutation_rates, self.memory = self.strategy.select_action(state)
         mutation_rates = mutation_rates.data.cpu().numpy()[0]
 
@@ -185,11 +183,10 @@ class SolverWithFitnessShapingCrossover(SatSolver):
 
     def perform_one_generation(self, generations_left):
         self.population.local_search(5, 1)
-
+        
         # Modify fitness and perform crossover
         self.evaluation_function(self.population)
-        state = self.input_encoder.encode(self.population, generations_left)
-        state.storeMemory(self.memory)
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
         fitness_factors, self.memory = self.strategy.select_action(state)
         fitness_factors = fitness_factors.data.cpu().numpy()[0]
         self.population.modify_fitness(fitness_factors)
@@ -216,8 +213,7 @@ class SolverWithFitnessShapingSelection(SatSolver):
 
         # Modify fitness and perform selection
         self.evaluation_function(self.population)
-        state = self.input_encoder.encode(self.population, generations_left)
-        state.storeMemory(self.memory)
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
         fitness_factors, self.memory = self.strategy.select_action(state)
         fitness_factors = fitness_factors.data.cpu().numpy()[0]
         self.population.modify_fitness(fitness_factors)

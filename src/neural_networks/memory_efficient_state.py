@@ -53,8 +53,11 @@ class ME_State:
         """
         return self.input_streams[input_code]
 
-    def getMemory(self) -> List[T]:
-        return self.memory.values()
+    def popMemory(self) -> List[T]:
+        l = list(self.memory.values())
+        l.sort(key=lambda x: x.size())
+        self.memory = dict()
+        return l
 
     def store(self, input_stream: T, overwrite=False):
         """
@@ -121,8 +124,8 @@ class ME_State:
 
 def concat(me_states: List[ME_State]) -> ME_State:
     """
-    Concatenates the given states by concatenating all Tensors that have the same size and returns the resulting state.
+    Concatenates the given states by concatenating all Tensors that have the same size on the batch dimension and returns the resulting state.
     """
     inputs_array = list(zip(*tuple([me_state.values() for me_state in me_states])))
-    memory_array = list(zip(*tuple([me_state.getMemory() for me_state in me_states])))
+    memory_array = list(zip(*tuple([me_state.popMemory() for me_state in me_states])))
     return ME_State([torch.cat(inputs) for inputs in inputs_array], [torch.cat(inputs) for inputs in memory_array])

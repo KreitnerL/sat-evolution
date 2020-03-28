@@ -9,6 +9,8 @@ import numpy as np
 import torch
 from sat.population import Population
 from neural_networks.memory_efficient_state import ME_State
+from collections import Counter
+from typing import List
 
 
 class EncodingStrategy(ABC):
@@ -38,7 +40,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
     """
     Improved encoding strategy to be used for the 3SAT problem.
     """
-    def encode(self, population: Population, generations_left) -> ME_State:
+    def encode(self, population: Population, generations_left, memory: List[torch.Tensor] = None) -> ME_State:
         """
         :returns: list of tensors with the following attributes:\n
             - problem instance (2x)1xGxE
@@ -81,6 +83,10 @@ class ProblemInstanceEncoding(EncodingStrategy):
         # Feature 8: Generations_left 1x1x1
         generations_left = torch.tensor([generations_left]).float().view(1,1,1,1,1)
 
+        # Initiate memory
+        if not memory:
+            memory = [torch.empty(1,channels, P if p else 1, G if g else 1, E if e else 1).fill_(.5).cuda() for (p,g,e), channels in self.num_channels()[1].items()]
+
         return ME_State([problem,
                         population_data,
                         variable_participation_in_unsatisfied,
@@ -89,18 +95,24 @@ class ProblemInstanceEncoding(EncodingStrategy):
                         variable_participation,
                         num_clauses, 
                         num_vars, 
-                        generations_left])
+                        generations_left],
+                        memory)
     
     def num_channels(self):
-        d = {
+        d = Counter({
             (0,1,1): 2,
             (1,1,0): 3,
             (1,0,1): 1,
             (0,1,0): 1,
             (1,0,0): 1,
             (0,0,0): 3
-        }
-        return d
+        })
+        memory_dim = Counter({
+            (1,1,0): 5,
+            (1,0,1): 5,
+            (1,0,0): 5
+        })
+        return d+memory_dim, memory_dim
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """

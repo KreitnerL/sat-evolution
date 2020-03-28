@@ -144,7 +144,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
         """
         self.optimizer.zero_grad()
 
-        distribution_params, values = self.network(states)
+        distribution_params, values, _ = self.network(states)
 
         # Calculate the actor loss
 

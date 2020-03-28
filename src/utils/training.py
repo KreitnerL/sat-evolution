@@ -1,5 +1,6 @@
 from sat.problem_loader import load_problems
 from timeit import default_timer as timer
+from tqdm import tqdm
 
 batch_size = 32
 pre_training_rounds = 5
@@ -20,17 +21,17 @@ def train_problem_set(solver, problems, generations, output, optimize_every):
             solved = False
             print("Problem: ", problem.get_filename())
 
-            for i in range(0, generations):
+            for i in tqdm(range(0, generations)):
                 solver.perform_one_generation((generations - i) / generations)
                 # print(solver.get_best_score())
                 if solver.is_solved() and not solved:
                     solved = True
-                    print("Solved in", i, "generations  -  in", (timer()-start), "sec")
+                    # print("Solved in", i, "generations  -  in", (timer()-start), "sec")
                     f.write(str(i)+'\n')
                     break
 
             if not solved:
-                print("Not solved  -  in", (timer()-start), "sec")
+                # print("Not solved  -  in", (timer()-start), "sec")
                 f.write('-1\n')
 
             solver.reset()
@@ -88,7 +89,7 @@ def pre_train_solver(solver, dir, start_at = 0):
     # pre train with easy examples
     for j in range(start_at, pre_training_rounds):
         print("Starting pre-training round", j)
-        problems = load_problems("DATA/examples-easy/", "uf20-0", ".cnf", (1,900))
+        problems = load_problems("DATA/examples-20/", "uf20-", ".cnf", (1,900))
         filename = dir + str(j) + "-pre.txt"
         train_problem_set(solver, problems, 512, filename, 20)
         print("saving network baseline " + str(j) + "...")

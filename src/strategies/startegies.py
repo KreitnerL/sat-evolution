@@ -95,7 +95,7 @@ class IndividualMutationControl(PPOStrategy):
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
-        return action.detach(), [m.detach() for m in memory]
+        return action.detach(), memory
 
     def create_distribution(self, distribution_params):
             alpha = F.softplus(distribution_params[:, 0, :]) + 1
@@ -178,7 +178,7 @@ class GeneMutationControl(PPOStrategy):
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
-        return action.detach(), [m.detach() for m in memory]
+        return action.detach(), memory
 
     def create_distribution(self, distribution_params):
             alpha = F.softplus(distribution_params[:, 0, :]) + 1
@@ -203,7 +203,7 @@ class FitnessShapingControl(PPOStrategy):
                  discount_factor=0.99,
                  variance_bias_factor=0.98,
                  num_hidden_layers=1,
-                 num_neurons=38,
+                 num_neurons=32,
                  batch_size=16,
                  clipping_value=0.2,
                  num_training_epochs=4,
@@ -262,7 +262,7 @@ class FitnessShapingControl(PPOStrategy):
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
-        return action.detach(), [m.detach() for m in memory]
+        return action.detach(), memory
 
     def create_distribution(self, distribution_params):
         variance = 0.00001 + F.softplus(distribution_params[:, 0, :])
