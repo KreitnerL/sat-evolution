@@ -18,7 +18,7 @@ conv_map = {
 class Pool_conv_sum_nonlin_pool(nn.Module):
     """
     Submodule that takes different sized feature tensors and applies pooling, convolution, summing with broadcasting, a non-linearity and pooling.
-    All features are convoluted by their very own conv-layer, so that they do not have to be concatenated, leading to a more memory efficent implementation.
+    All features are convoluted by their very own conv-layer, so that they do not have to be concatenated, yielding a more memory efficent implementation.
     """
 
     def __init__(
@@ -32,19 +32,21 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         """
         Generates a submodule that can take a ME_State (list of features) with the given feature dimensions and returns either a concatenated tensor or a ME_State.
         :param num_input_channels: Dictionary that assigns a number of channels to each input code
-        :param num_output_channels:  Dictionary that assigns a number of output channels to each input code
-        :param eliminate_dimension: boolean tupel that encodes for each dimension whether it should be removed
+        :param num_output_channels: Dictionary that assigns a number of output channels to each input code
+        :param output_stream_codes: List of codes that fixates the dimension of the output tensors. If not set, the network will return the same input dimensions as the input
+        :param eliminate_dimension: Boolean tupel that encodes for each dimension whether it should be removed
         :param activation_func: Activation function used as non-linearity
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
         super().__init__()
+        # Elimination of dimension lead to another input. Calculate the new input dimensions + channels
         if eliminate_dimension != (0,0,0):
             num_input_channels_new = dict()
             for code, channels in num_input_channels.items():
                 code = tuple(1*np.greater(code, eliminate_dimension))
                 num_input_channels_new[code] = num_input_channels_new.get(code, 0) + channels
             num_input_channels = num_input_channels_new
-        # Calculate all sub stream code per input
+        # Calculate all sub stream codes per input
         self.input_stream_codes = {code: get_input_stream_codes(code) for code in num_input_channels.keys()}
         self.output_stream_codes = output_stream_codes if output_stream_codes is not None else self.input_stream_codes.keys()
         self.activation_func = activation_func
@@ -61,6 +63,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         if not pool_func:
             pool_func = self.global_pool_func
 
+        # Remove unwanted dimensions
         if self.eliminate_dimension != (0,0,0):
             new = ME_State()
             for code, x in me_state.items():
@@ -86,7 +89,8 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
                             sub_input_stream = sub_input_stream.squeeze(2+i)
                 conv_list[sub_input_code] = sub_input_stream
         me_state = None
-        #  Conv
+
+        # Conv
         for input_code, input_stream in conv_list.items():
             conv_list[input_code] = self.layers[str(input_code)](input_stream)
 
@@ -120,6 +124,9 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         return me_state
 
     def checkInput(self, me_state: ME_State):
+        """
+        Thows an exception if the given me_state does not have same feature dimensions (after eliminate dimensions!) as stated in the initialization
+        """
         a = list(set(me_state.keys()))
         b = list(set(self.input_stream_codes.keys()))
         if a != b:
@@ -130,9 +137,8 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
 
 def get_input_stream_codes(input_code: Tuple[int]) -> List[Tuple[int]]:
         """
-        Calculates all input stream the given input devides into and returns their encodings
+        Calculates all input streams, the given input devides into and returns their encodings.
         :param input_code: the encoding of the input stream
-        :param eliminate_dimension: tuple that encodes all dimensions that are eliminated
         """
         if sum(input_code) <= 1:
             return [input_code+input_code]

@@ -42,7 +42,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
     """
     def encode(self, population: Population, generations_left, memory: List[torch.Tensor] = None) -> ME_State:
         """
-        :returns: list of tensors with the following attributes:\n
+        :returns: ME_State with following features:\n
             - problem instance (2x)1xGxE
             - genome of each individual (2x)PxGx1
             - fitness of each individual Px1x1
@@ -52,6 +52,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
             - Number of clauses 1x1x1
             - Number of variables 1x1x1
             - Generations left 1x1x1
+            - memory of the last step
         """
         P = population.size
         G = population.cnf.num_variables
@@ -99,7 +100,10 @@ class ProblemInstanceEncoding(EncodingStrategy):
                         memory)
     
     def num_channels(self):
-        d = Counter({
+        """
+        Returns a tuple of dictionaries. 1) Maps input_stream code to number of channels. 2) Maps memory_stream code to number of channels.
+        """
+        features = Counter({
             (0,1,1): 2,
             (1,1,0): 3,
             (1,0,1): 1,
@@ -112,7 +116,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
             (1,0,1): 5,
             (1,0,0): 5
         })
-        return d+memory_dim, memory_dim
+        return features+memory_dim, memory_dim
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """

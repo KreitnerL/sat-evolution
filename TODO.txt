@@ -1,25 +1,18 @@
 https://github.com/ElderResearch/gpu_docker/issues/38
 
-Welcher Outcome lässt sich erwarten?
-    Trainiert performt unser Algorithmus besser als andere (einfache) State of the art
-    Algorithmen. Also er lößt mehr Probleme in der gegebenen Zeit
-
 Loss?
     Wenn stagniert auf hohem Level auf allen LR, Archtitektur nicht gut!
-
-Input?
-    Nutze Memory die einzelne Features speichern kann. Z.B. Verhältnis von Variablen
-    in GxGxG. Suche andere Features in SAT Algorithmen!
 
 Hyperparamter wo anfangen?
     Bottom up approach. Auf einfachen Problemen geringer HL anzahl und nicht zu wenig
     Filtern! Learning rate oft genug ändern! Nutze Seed, aber hin und wieder auch ohne Seed
     um nicht zu abhängig zu sein!
 
-Probleme?
-    Beginne mit 5 Variablen 10 Klauseln oder noch weniger. Versuche neue Database mit
-    solchen SAT Problemen zu erstellen. Trainiere Algorithmus auf Testset bis Anzahl an
-    gelösten Problemen akzeptabel wird.
-
 Crossover / Selection / ...?
     Konzentriere dich auch die vielversprechenden!
+
+Truncated Backpropagation through time
+
+GxG memory
+
+parallel streams

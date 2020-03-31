@@ -30,19 +30,19 @@ class ME_State:
 
     def items(self):
         """
-        returns key, value pairs for all input streams
+        Returns (key, value) pairs for all input streams
         """
         return self.input_streams.items()
 
     def keys(self):
         """
-        returns all input codes of the dictionary
+        Returns all input codes of the input_stream dictionary
         """
         return self.input_streams.keys()
 
     def values(self):
         """
-        returns all input streams of the dictionary
+        Returns all input streams of the dictionary
         """
         l = list(self.input_streams.values())
         l.sort(key=lambda x: x.size())
@@ -56,6 +56,9 @@ class ME_State:
         return self.input_streams[input_code]
 
     def getMemory(self) -> ME_State:
+        """
+        Returns the stored memory.
+        """
         return self.memory
 
     def store(self, input_stream: T, overwrite=False):
@@ -72,15 +75,14 @@ class ME_State:
 
     def storeMemory(self, memory: ME_State):
         """
-        Adds the given Tensor to the memory.
-        :param input_stream: the tensor that should be stored
-        :param overwrite: (Optional) If True, the previous entry will be overwritten. The entries will be concatenated along the channels dimension otherwise. Default=False 
+        Sets the memory to the given ME_State
+        :param memory: New memory
         """
         self.memory = memory
 
     def apply_fn(self, fn) -> ME_State:
         """
-        Returns a copy of the current state with the given function applied to all Tensors in the dictionary.
+        Returns a copy of the current state with the given function applied to all Tensors in the dictionary (input_streams and memory).
         Be aware, that performing actions that change the size of a Tensor will lead to an inconsistent state!
         """
         return ME_State(
@@ -108,12 +110,16 @@ class ME_State:
 
     def getCode(self, size: Tuple[int]) -> Tuple[int]:
         """
-        Return the store code for a given Tensor size.
+        Returns the input code for a given Tensor size.
         :param size: Tuple of form [batch, channel, P, G, E]
         """
         return tuple(1 if dim>1 else 0 for dim in size[2:])
 
     def addAll(self, me_state: ME_State) -> ME_State:
+        """
+        Adds all input strams of the given state to the dictionary.
+        :param me_state: ME_state which values should be added. Note that memory will be ignored!
+        """
         if me_state:
             for code, value in me_state.items():
                 if code in self.input_streams:
@@ -124,6 +130,7 @@ class ME_State:
 def concat(me_states: List[ME_State]) -> ME_State:
     """
     Concatenates the given states by concatenating all Tensors that have the same size on the batch dimension and returns the resulting state.
+    :param me_states: list of ME_States
     """
     inputs_array = list(zip(*tuple([me_state.values() for me_state in me_states])))
     memory_array = [me_state.getMemory() for me_state in me_states if me_state.getMemory() is not None]

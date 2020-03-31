@@ -79,6 +79,7 @@ class Memory_efficient_network(nn.Module):
             activation_func=activation_func,
             global_pool_func=global_pool_func)
 
+        # Only create layer if memory is propagated
         self.memory_output = Pool_conv_sum_nonlin_pool(
             num_input_channels=neurons_dict,
             num_output_channels=list(self.memory_dim.values())[0],
