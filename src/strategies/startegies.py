@@ -92,6 +92,7 @@ class IndividualMutationControl(PPOStrategy):
         if self.training:
             self.last_experience['log_prob'] = distribution.log_prob(action).sum().detach().cpu()
 
+        state.storeMemory(memory, overwrite=True)
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
@@ -175,6 +176,7 @@ class GeneMutationControl(PPOStrategy):
         if self.training:
             self.last_experience['log_prob'] = distribution.log_prob(action).sum().detach().cpu()
 
+        state.storeMemory(memory, overwrite=True)
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 
@@ -259,6 +261,7 @@ class FitnessShapingControl(PPOStrategy):
         if self.training:
             self.last_experience['log_prob'] = distribution.log_prob(action).sum().detach().cpu()
 
+        state.storeMemory(memory, overwrite=True)
         self.last_experience['state'] = state
         self.last_experience['action'] = action.cpu()
 

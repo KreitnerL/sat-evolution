@@ -4,6 +4,7 @@ import numpy as np
 from neural_networks.memory_efficient_state import ME_State
 from typing import List, Tuple
 import torch.nn.functional as F
+import itertools
 
 T = torch.Tensor
 torchMax = lambda *x: T.max(*x)[0]
@@ -37,7 +38,14 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
         super().__init__()
-        self.input_stream_codes = {code: get_input_stream_codes(code, eliminate_dimension) for code in num_input_channels.keys()}
+        if eliminate_dimension != (0,0,0):
+            num_input_channels_new = dict()
+            for code, channels in num_input_channels.items():
+                code = tuple(1*np.greater(code, eliminate_dimension))
+                num_input_channels_new[code] = num_input_channels_new.get(code, 0) + channels
+            num_input_channels = num_input_channels_new
+        # Calculate all sub stream code per input
+        self.input_stream_codes = {code: get_input_stream_codes(code) for code in num_input_channels.keys()}
         self.output_stream_codes = output_stream_codes if output_stream_codes is not None else self.input_stream_codes.keys()
         self.activation_func = activation_func
         self.global_pool_func = global_pool_func
@@ -50,9 +58,19 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
                 self.layers[str(input_code)] = conv_map[sum(input_code[3:])](num_input_channels[input_code[:3]], num_output_channels, 1)
 
     def forward(self, me_state: ME_State, pool=True, pool_func=None):
-        self.checkInput(me_state)
         if not pool_func:
             pool_func = self.global_pool_func
+
+        if self.eliminate_dimension != (0,0,0):
+            new = ME_State()
+            for code, x in me_state.items():
+                for i, dim in enumerate(np.logical_and(code, self.eliminate_dimension)):
+                    if dim:
+                        x = self.global_pool_func(x, 2+i, True)
+                new.store(x)
+            me_state = new
+        self.checkInput(me_state)
+        
         conv_list = dict()
 
         # Pooling
@@ -102,20 +120,27 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         return me_state
 
     def checkInput(self, me_state: ME_State):
-        if set(me_state.keys()) != set(self.input_stream_codes.keys()):
-            raise ValueError(str(set(me_state.keys())) + ' != ' + str(set(self.input_stream_codes.keys())))
+        a = list(set(me_state.keys()))
+        b = list(set(self.input_stream_codes.keys()))
+        if a != b:
+            a.sort()
+            b.sort()
+            raise ValueError(str(a) + ' != ' + str(b))
 
-def get_input_stream_codes(input_code: Tuple[int], eliminate_dimension: Tuple[int] = (0,0,0)) -> List[Tuple[int]]:
+
+def get_input_stream_codes(input_code: Tuple[int]) -> List[Tuple[int]]:
         """
         Calculates all input stream the given input devides into and returns their encodings
         :param input_code: the encoding of the input stream
         :param eliminate_dimension: tuple that encodes all dimensions that are eliminated
         """
-        inputs = []
-        code = tuple(1*np.greater(input_code, eliminate_dimension))
-        inputs = [input_code+code]
-        if sum(code) > 1:
-            for i, dim in enumerate(code):
-                if dim and not eliminate_dimension[i]:
-                    inputs.append(input_code + tuple(0 if j==i else code[j] for j in range(3)))
-        return inputs
+        if sum(input_code) <= 1:
+            return [input_code+input_code]
+
+        def _constraints(code: Tuple[int]) -> bool:
+            for i, x in enumerate(code):
+                if x and not input_code[i]:
+                    return False
+            return sum(code)>0
+
+        return list(map(lambda x: input_code + x, filter(_constraints, itertools.product((0,1), repeat=len(input_code)))))

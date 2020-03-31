@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from neural_networks.memory_efficient_state import ME_State
 from neural_networks.pool_conv_sum_nonlin_pool import Pool_conv_sum_nonlin_pool
 from neural_networks.utils import init_weights
+from collections import Counter
 from typing import Tuple
 torchMax = lambda *x: T.max(*x)[0]
 T = torch.Tensor
@@ -89,9 +90,9 @@ class Memory_efficient_network(nn.Module):
         print("Created network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons and", getNumberParams(self), 'trainable paramters')
 
     def forward(self, input_t: ME_State):
-        memory_t = input_t.popMemory()
+        memory_t = input_t.getMemory()
 
-        # Concat input and hiddent state
+        # Concat input and memory
         for value in memory_t:
             input_t.store(value)
 
@@ -109,11 +110,8 @@ class Memory_efficient_network(nn.Module):
         # Sum everything up
         l = []
         for input_code, input_stream in values.items():
-            for i, dim in enumerate(input_code):
-                if dim:
-                    input_stream = input_stream.sum(2)
-                else:
-                    input_stream = input_stream.squeeze(2)
+            for dim in input_code:
+                input_stream = input_stream.sum(2)
             l.append(input_stream)
         values = sum(l, 2).view(-1)
 
