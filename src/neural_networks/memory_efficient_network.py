@@ -84,7 +84,7 @@ class Memory_efficient_network(nn.Module):
             num_output_channels=list(self.memory_dim.values())[0],
             output_stream_codes=self.memory_dim.keys(),
             activation_func=activation_func,
-            global_pool_func=global_pool_func)
+            global_pool_func=global_pool_func) if self.memory_dim else None
 
         self.apply(init_weights)
         print("Created network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons and", getNumberParams(self), 'trainable paramters')
@@ -93,8 +93,7 @@ class Memory_efficient_network(nn.Module):
         memory_t = input_t.getMemory()
 
         # Concat input and memory
-        for value in memory_t:
-            input_t.store(value)
+        input_t.addAll(memory_t)
 
         for i in range(self.num_hidden_layers + 1):
             input_t = self.layers[i](input_t)
@@ -116,7 +115,8 @@ class Memory_efficient_network(nn.Module):
         values = sum(l, 2).view(-1)
 
         # Calculate memory(t+1)
-        memory_t = [torch.tanh(x) for x in self.memory_output(input_t).values()]
+        if self.memory_output:
+            memory_t = self.memory_output(input_t).apply_fn(torch.tanh)
 
         return action_distributions, values, memory_t
 

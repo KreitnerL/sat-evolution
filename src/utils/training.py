@@ -37,7 +37,7 @@ def train_problem_set(solver, problems, generations, output, optimize_every_max,
             f.flush()
 
             if (j+1) % optimize_every == 0:
-                if optimize_every < optimize_every_max:
+                if optimize_every <= optimize_every_max:
                     optimize_every += 1
                 j=0
                 print("\n\noptimizing network...")

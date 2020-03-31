@@ -83,9 +83,9 @@ class ProblemInstanceEncoding(EncodingStrategy):
         # Feature 8: Generations_left 1x1x1
         generations_left = torch.tensor([generations_left]).float().view(1,1,1,1,1)
 
-        # Initiate memory
-        if not memory:
-            memory = [torch.empty(1,channels, P if p else 1, G if g else 1, E if e else 1).fill_(.5).cuda() for (p,g,e), channels in self.num_channels()[1].items()]
+        # Initialize memory with values 0.5
+        if not memory and self.num_channels()[1]:
+            memory = ME_State([torch.zeros(1,channels, P if p else 1, G if g else 1, E if e else 1).cuda() for (p,g,e), channels in self.num_channels()[1].items()])
 
         return ME_State([problem,
                         population_data,
