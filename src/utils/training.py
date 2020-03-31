@@ -1,18 +1,18 @@
 from sat.problem_loader import load_problems
 from timeit import default_timer as timer
-from tqdm import tqdm
-
 batch_size = 32
 pre_training_rounds = 5
 training_rounds = 10
 losses_dir = None
 
-def train_problem_set(solver, problems, generations, output, optimize_every):
+def train_problem_set(solver, problems, generations, output, optimize_every_max, optimize_every=None):
+    if not optimize_every:
+        optimize_every = optimize_every_max
     solver.training = True
 
     with open(output, "w") as f:
+        j = 0
         for index in range(0, len(problems)):
-
             # TIMING
             start = timer()
 
@@ -20,28 +20,32 @@ def train_problem_set(solver, problems, generations, output, optimize_every):
             solver.create_population(problem)
             solved = False
             print("Problem: ", problem.get_filename())
-
-            for i in tqdm(range(0, generations)):
+            for i in range(generations):
                 solver.perform_one_generation((generations - i) / generations)
                 # print(solver.get_best_score())
                 if solver.is_solved() and not solved:
                     solved = True
-                    # print("Solved in", i, "generations  -  in", (timer()-start), "sec")
+                    print("Solved in", i, "generations  -  in", (timer()-start), "sec")
                     f.write(str(i)+'\n')
                     break
 
             if not solved:
-                # print("Not solved  -  in", (timer()-start), "sec")
+                print("Not solved  -  in", (timer()-start), "sec")
                 f.write('-1\n')
 
             solver.reset()
             f.flush()
 
-            if (index+1) % optimize_every == 0:
+            if (j+1) % optimize_every == 0:
+                if optimize_every < optimize_every_max:
+                    optimize_every += 1
+                j=0
                 print("\n\noptimizing network...")
                 s = timer()
                 solver.optimize_network()
                 print("optimized network in", timer()-s, "sec\n\n")
+            else:
+                j += 1
 
     solver.optimize_network()
     solver.clear_experience()
