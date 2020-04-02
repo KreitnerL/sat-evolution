@@ -9,6 +9,7 @@ from reinforcement.reinforcement import ReinforcementLearningStrategy
 
 from neural_networks.memory_efficient_state import concat
 from utils.training import save_loss
+from tqdm import tqdm
 
 class PPOStrategy(ReinforcementLearningStrategy):
     """
@@ -112,10 +113,12 @@ class PPOStrategy(ReinforcementLearningStrategy):
 
     def optimize_model(self):
         loss_item_array = []
-
+        mini_batches = self.generate_mini_batches()
+        
+        t = tqdm(total=self.num_training_epochs*len(mini_batches))
         for _ in range(self.num_training_epochs):
 
-            for mini_batch in self.generate_mini_batches():
+            for mini_batch in mini_batches:
 
                 (states,
                     actions,
@@ -130,6 +133,8 @@ class PPOStrategy(ReinforcementLearningStrategy):
 
                 loss.backward()
                 self.optimizer.step()
+                t.update(1)
+        t.close()
 
         save_loss(sum(loss_item_array)/len(loss_item_array), loss_item_array[0], loss_item_array[-1])
         self.actor_experience_store = []
@@ -144,7 +149,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
         """
         self.optimizer.zero_grad()
 
-        distribution_params, values = self.network(states)
+        distribution_params, values, _ = self.network(states)
 
         # Calculate the actor loss
 

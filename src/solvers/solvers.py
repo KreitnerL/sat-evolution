@@ -22,9 +22,11 @@ class SatSolver(object):
 
         self.training = True
 
-    @abstractmethod
-    def create_population(self, problem, size):
-        pass
+    def create_population(self, problem):
+        self.population = Population.random(problem, self.population_size)
+        self.evaluation_function(self.population)
+        self.problem = problem
+        self.memory = None
 
     @abstractmethod
     def perform_one_generation(self, generations_left):
@@ -104,19 +106,15 @@ class SolverWithIndividualMutationControl(SatSolver):
         strategy = IndividualMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers, satisfied_reward_factor=satisfied_reward_factor)
 
-    def create_population(self, problem):
-        self.population = Population.random(problem, self.population_size)
-        self.evaluation_function(self.population)
-        self.problem = problem
-
     def perform_one_generation(self, generations_left, mutation_rates_log=None):
         self.population.local_search(5, 1)
         self.population.crossover(n_best=int(self.population_size / 2))
         self.population.selection(self.population_size)
         self.evaluation_function(self.population)
 
-        state = self.input_encoder.encode(self.population, generations_left)
-        mutation_rates = self.strategy.select_action(state).data.cpu().numpy()[0]
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
+        mutation_rates, self.memory = self.strategy.select_action(state)
+        mutation_rates = mutation_rates.data.cpu().numpy()[0]
 
         # Log mutation rates to file
         if mutation_rates_log is not None:
@@ -145,19 +143,15 @@ class SolverWithGeneMutationControl(SatSolver):
         strategy = GeneMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
-    def create_population(self, problem):
-        self.population = Population.random(problem, self.population_size)
-        self.evaluation_function(self.population)
-        self.problem = problem
-
     def perform_one_generation(self, generations_left, mutation_rates_log=None):
         self.population.local_search(1, 1)
         self.population.crossover(n_best=int(self.population_size / 2))
         self.population.selection(self.population_size)
         self.evaluation_function(self.population)
 
-        state = self.input_encoder.encode(self.population, generations_left)
-        mutation_rates = self.strategy.select_action(state).data.cpu().numpy()[0]
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
+        mutation_rates, self.memory = self.strategy.select_action(state)
+        mutation_rates = mutation_rates.data.cpu().numpy()[0]
 
         # Log mutation rates to file
         if mutation_rates_log is not None:
@@ -187,18 +181,14 @@ class SolverWithFitnessShapingCrossover(SatSolver):
         strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
-    def create_population(self, problem):
-        self.population = Population.random(problem, self.population_size)
-        self.evaluation_function(self.population)
-        self.problem = problem
-
     def perform_one_generation(self, generations_left):
         self.population.local_search(5, 1)
-
+        
         # Modify fitness and perform crossover
         self.evaluation_function(self.population)
-        state = self.input_encoder.encode(self.population, generations_left)
-        fitness_factors = self.strategy.select_action(state).data.cpu().numpy()[0]
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
+        fitness_factors, self.memory = self.strategy.select_action(state)
+        fitness_factors = fitness_factors.data.cpu().numpy()[0]
         self.population.modify_fitness(fitness_factors)
         self.population.crossover(n_best=int(self.population_size / 2))
         self.evaluation_function(self.population)
@@ -217,19 +207,15 @@ class SolverWithFitnessShapingSelection(SatSolver):
         strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
-    def create_population(self, problem):
-        self.population = Population.random(problem, self.population_size)
-        self.evaluation_function(self.population)
-        self.problem = problem
-
     def perform_one_generation(self, generations_left, factors_log=None):
         self.population.local_search(5, 1)
         self.population.crossover(n_best=int(self.population_size / 2))
 
         # Modify fitness and perform selection
         self.evaluation_function(self.population)
-        state = self.input_encoder.encode(self.population, generations_left)
-        fitness_factors = self.strategy.select_action(state).data.cpu().numpy()[0]
+        state = self.input_encoder.encode(self.population, generations_left, self.memory)
+        fitness_factors, self.memory = self.strategy.select_action(state)
+        fitness_factors = fitness_factors.data.cpu().numpy()[0]
         self.population.modify_fitness(fitness_factors)
         self.population.selection(self.population_size)
         self.evaluation_function(self.population)
@@ -258,11 +244,6 @@ class VanilaSolver(SatSolver):
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.best_score = 0
-
-    def create_population(self, problem):
-        self.population = Population.random(problem, self.population_size)
-        self.evaluation_function(self.population)
-        self.problem = problem
 
     def perform_one_generation(self, _):
         self.population.local_search(5, 1)
