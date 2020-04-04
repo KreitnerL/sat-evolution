@@ -1,8 +1,8 @@
+from __future__ import annotations
 import random
 import numpy as np
 import time
 from sat.cnf3 import CNF3
-from torch import Tensor as T
 
 class Solution(object):
     """
@@ -14,7 +14,6 @@ class Solution(object):
         self.cnf = cnf
         # A normalized 2xnum_vars matrix
         self.assignments = assignments
-        # random.seed(time.time())
 
     @staticmethod
     def random(cnf):
@@ -32,7 +31,7 @@ class Solution(object):
 
 
     def evaluate(self, get_unsatisfied=False):
-        self.score, self.variables_in_unsat, self.satisfied_clauses = self.cnf.evaluate(self.assignments, get_unsatisfied=get_unsatisfied)
+        self.score, self.τ_satisfied_clauses, self.make_values, self.break_values = self.cnf.evaluate(self.assignments, get_additional_properties=get_unsatisfied)
         self.has_unsatisfied = get_unsatisfied
 
     def mutate(self, probability, per_gene=False):
@@ -49,7 +48,7 @@ class Solution(object):
                 if random.uniform(0,1) < probability:
                     self.assignments[:,i] = 1-self.assignments[:,i]
 
-    def crossover(self, other):
+    def crossover(self, other) -> Solution:
         """
         Perform crossover of two solutions
         """
@@ -78,7 +77,7 @@ class Solution(object):
         for _ in range (0, max_variables):
             for var in range(0, self.cnf.num_variables):
                 self.assignments[:,var] = 1-self.assignments[:,var]
-                score, _, __ = self.cnf.evaluate(assignments)
+                score, _, __, ___ = self.cnf.evaluate(assignments)
                 improvement = score - self.get_score()
                 if improvement > 0 and improvement > best_improvement:
                     best_improvement = improvement
@@ -91,24 +90,20 @@ class Solution(object):
 
         self.assignments = assignments
 
-    def get_assignments(self):
+    def get_assignments(self) -> np.ndarray:
         return self.assignments
 
-    def get_inverse_assignments(self):
-        inverse = self.assignments.copy()
-        inverse = 1-inverse
-        return inverse
+    def get_inverse_assignments(self) -> np.ndarray:
+        return 1 - self.assignments.copy()
 
-    def get_score(self):
+    def get_score(self) -> int:
         return self.score
 
-    # A vector that encodes for each variable, how often it participates in an unsatisfied clause
-    def get_unsatisfied(self):
-        if not self.has_unsatisfied:
-            raise Exception("Unsatisfied not evaluated")
-        return self.variables_in_unsat
+    def get_make_values(self) -> np.ndarray:
+        return self.make_values
 
-    def get_satisfied_clauses(self) -> T:
-        if not hasattr(self, 'satisfied_clauses'):
-            raise Exception("Satisfied_clauses not evaluated")
-        return self.satisfied_clauses
+    def get_break_values(self) -> np.ndarray:
+        return self.break_values
+
+    def get_satisfied_clauses(self) -> np.ndarray:
+        return self.τ_satisfied_clauses

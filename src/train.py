@@ -46,7 +46,7 @@ solverMap = {
     'selection': SolverWithFitnessShapingSelection
 }
 
-solver = solverMap.get(solver_arg, None)(encoder, population_size, num_hidden_layers=2)
+solver = solverMap.get(solver_arg, None)(encoder, population_size, num_hidden_layers=1)
 if solver is not None:
     if weightsdir is not None and os.path.isfile(weightsdir + "baseline"):
         print("loading baseline")

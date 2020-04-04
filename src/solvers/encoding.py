@@ -57,41 +57,45 @@ class ProblemInstanceEncoding(EncodingStrategy):
         P = population.size
         G = population.cnf.num_variables
         E = population.cnf.num_clauses
-        # Feature 0: Problem instance (2x)1xGxE
+        # Problem instance (2x)1xGxE
         problem  = torch.tensor(population.cnf.mat).float().permute(0,2,1).view(1,2,1,G,E)
 
-        # Feature 1: Solution of each individual (genome) (2x)PxGx1
+        # Solution of each individual (genome) (2x)PxGx1
         population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(1,0,2).view(1,2,P,G,1)
 
-        # Feature 2 : Participation in clauses 1xGx1
+        # Participation in clauses 1xGx1
         variable_participation = torch.tensor(population.cnf.get_participation() / population.cnf.num_clauses).float().view(1,1,1,G,1)
 
-        # Feature 3 : Participation in unsatistfied clauses PxGx1
-        variable_participation_in_unsatisfied = torch.tensor([solution.get_unsatisfied() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,G,1)
+        # Make value per genome PxGx1
+        make_values = torch.tensor([solution.get_make_values() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,G,1)
 
-        # Feature 4 : Satisfied clauses Px1xE
-        satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().view(1,1,P,1,E)
+        # Break value per genome PxGx1
+        break_values = torch.tensor([solution.get_break_values() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,G,1)
 
-        # Feature 5: Fitness of each individual Px1x1
+        # Satisfied clauses Px1xE
+        τ_satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().view(1,1,P,1,E)
+
+        # Fitness of each individual Px1x1
         population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().view(1,1,P,1,1)
 
-        # Feature 6 : Number of clauses 1x1x1
+        # Number of clauses 1x1x1
         num_clauses = torch.tensor([population.cnf.num_clauses]).float().view(1,1,1,1,1)
 
-        # Feature 7 : Number of variables 1x1x1
+        # Number of variables 1x1x1
         num_vars = torch.tensor([population.cnf.num_variables]).float().view(1,1,1,1,1)
 
-        # Feature 8: Generations_left 1x1x1
+        # Generations_left 1x1x1
         generations_left = torch.tensor([generations_left]).float().view(1,1,1,1,1)
 
-        # Initialize memory with values 0.5
+        # Initialize memory with 0
         if not memory and self.num_channels()[1]:
             memory = ME_State([torch.zeros(1,channels, P if p else 1, G if g else 1, E if e else 1).cuda() for (p,g,e), channels in self.num_channels()[1].items()])
 
         return ME_State([problem,
                         population_data,
-                        variable_participation_in_unsatisfied,
-                        satisfied_clauses,
+                        make_values,
+                        break_values,
+                        τ_satisfied_clauses,
                         population_fitness,
                         variable_participation,
                         num_clauses, 
@@ -105,7 +109,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
         """
         features = Counter({
             (0,1,1): 2,
-            (1,1,0): 3,
+            (1,1,0): 4,
             (1,0,1): 1,
             (0,1,0): 1,
             (1,0,0): 1,
