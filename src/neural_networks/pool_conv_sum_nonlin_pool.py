@@ -39,13 +39,9 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
         super().__init__()
-        # Elimination of dimension lead to another input. Calculate the new input dimensions + channels
-        if eliminate_dimension != (0,0,0):
-            num_input_channels_new = dict()
-            for code, channels in num_input_channels.items():
-                code = tuple(1*np.greater(code, eliminate_dimension))
-                num_input_channels_new[code] = num_input_channels_new.get(code, 0) + channels
-            num_input_channels = num_input_channels_new
+        # Elimination of dimension lead to another input. Calculate the new input dimensions + channels. Assumes that all inputs were pooled from the same tensor before.
+        if sum(eliminate_dimension) > 0:
+            num_input_channels = dict.fromkeys({tuple(1*np.greater(code, eliminate_dimension)) for code in num_input_channels}, list(num_input_channels.values())[0])
         # Calculate all sub stream codes per input
         self.input_stream_codes = {code: get_input_stream_codes(code) for code in num_input_channels.keys()}
         self.output_stream_codes = output_stream_codes if output_stream_codes is not None else self.input_stream_codes.keys()
@@ -64,13 +60,13 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
             pool_func = self.global_pool_func
 
         # Remove unwanted dimensions
-        if self.eliminate_dimension != (0,0,0):
+        if sum(self.eliminate_dimension) > 0:
             new = ME_State()
             for code, x in me_state.items():
                 for i, dim in enumerate(np.logical_and(code, self.eliminate_dimension)):
                     if dim:
                         x = self.global_pool_func(x, 2+i, True)
-                new.store(x)
+                new.store(x, overwrite=True)
             me_state = new
         self.checkInput(me_state)
         
