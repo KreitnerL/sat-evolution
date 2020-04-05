@@ -139,7 +139,6 @@ class PPOStrategy(ReinforcementLearningStrategy):
         save_loss(sum(loss_item_array)/len(loss_item_array), loss_item_array[0], loss_item_array[-1])
         self.actor_experience_store = []
         self.update_exploration_rate()
-        torch.cuda.empty_cache()
 
 
     def calc_loss(self, states, actions, log_probs_old, advantages, returns):

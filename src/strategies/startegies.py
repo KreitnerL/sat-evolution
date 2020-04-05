@@ -52,7 +52,6 @@ class IndividualMutationControl(PPOStrategy):
         network = Memory_efficient_network(
             encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_dimension=(0,1,0),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -136,7 +135,6 @@ class GeneMutationControl(PPOStrategy):
         network = Memory_efficient_network(
             encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_dimension=(0,0,0),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons
@@ -165,7 +163,6 @@ class GeneMutationControl(PPOStrategy):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())
-
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
 
@@ -206,7 +203,7 @@ class FitnessShapingControl(PPOStrategy):
                  variance_bias_factor=0.98,
                  num_hidden_layers=1,
                  num_neurons=32,
-                 batch_size=16,
+                 batch_size=8,
                  clipping_value=0.2,
                  num_training_epochs=4,
                  dim_elimination_max_pooling=False,
@@ -221,7 +218,6 @@ class FitnessShapingControl(PPOStrategy):
         network = Memory_efficient_network(
             encoding_strategy.num_channels(),
             num_output_channels,
-            eliminate_dimension=(0,1,1),
             dim_elimination_max_pooling=dim_elimination_max_pooling,
             num_hidden_layers=num_hidden_layers,
             num_neurons=num_neurons

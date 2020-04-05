@@ -5,6 +5,8 @@ from neural_networks.memory_efficient_state import ME_State
 from typing import List, Tuple
 import torch.nn.functional as F
 import itertools
+from solvers.encoding import ProblemInstanceEncoding
+NUM_DIMENSIONS = ProblemInstanceEncoding.NUM_DIMENSIONS
 
 T = torch.Tensor
 torchMax = lambda *x: T.max(*x)[0]
@@ -26,7 +28,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         num_input_channels: dict, 
         num_output_channels: int, 
         output_stream_codes: List[int] = None,
-        eliminate_dimension: Tuple[int] = (0,0,0),
+        eliminate_dimension: Tuple[int] = tuple([0]*NUM_DIMENSIONS),
         activation_func: type(F.leaky_relu) = F.leaky_relu,
         global_pool_func: type(torchMax) = torchMax):
         """
@@ -53,7 +55,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         self.layers = nn.ModuleDict()
         for l in self.input_stream_codes.values():
             for input_code in l:
-                self.layers[str(input_code)] = conv_map[sum(input_code[3:])](num_input_channels[input_code[:3]], num_output_channels, 1)
+                self.layers[str(input_code)] = conv_map[sum(input_code[NUM_DIMENSIONS:])](num_input_channels[input_code[:NUM_DIMENSIONS]], num_output_channels, 1)
 
     def forward(self, me_state: ME_State, pool=True, pool_func=None):
         if not pool_func:
@@ -77,12 +79,12 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
             input_stream = me_state.get(input_code)
             for sub_input_code in sub_input_code_list:
                 sub_input_stream = input_stream
-                for i, dim in reversed(list(enumerate(sub_input_code[3:]))):
-                    if not dim:
-                        if sub_input_code[i]:
-                            sub_input_stream = pool_func(sub_input_stream, 2+i, sub_input_stream.dim()<=3)
-                        elif sub_input_stream.dim()>3:
-                            sub_input_stream = sub_input_stream.squeeze(2+i)
+                for i, dim in reversed(list(enumerate(sub_input_code[NUM_DIMENSIONS:]))):
+                    if not dim and sub_input_code[i]:
+                        sub_input_stream = pool_func(sub_input_stream, 2+i, sub_input_stream.dim()<=3)
+                sub_input_stream = sub_input_stream.view(sub_input_stream.shape[0], sub_input_stream.shape[1], *(x for x in sub_input_stream.shape[2:] if x>1))
+                if sub_input_stream.dim()<=2:
+                    sub_input_stream = sub_input_stream.unsqueeze(-1)
                 conv_list[sub_input_code] = sub_input_stream
         me_state = None
 
@@ -94,9 +96,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         sum_PxGxE = torch.tensor(0).float()
         for input_code in list(conv_list.keys()):
             input_stream = conv_list.pop(input_code)
-            for i, dim in enumerate(input_code[3:]):
-                if not dim and input_stream.dim()<5:
-                    input_stream = input_stream.unsqueeze(2+i)
+            input_stream = input_stream.view(*get_full_shape(input_code[NUM_DIMENSIONS:], input_stream.shape))
             sum_PxGxE = sum_PxGxE + input_stream
         
         if len(conv_list) > 0:
@@ -123,9 +123,10 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         """
         Thows an exception if the given me_state does not have same feature dimensions (after eliminate dimensions!) as stated in the initialization
         """
-        a = list(set(me_state.keys()))
-        b = list(set(self.input_stream_codes.keys()))
+        a = set(me_state.keys())
+        b = set(self.input_stream_codes.keys())
         if a != b:
+            a, b = list(a), list(b)
             a.sort()
             b.sort()
             raise ValueError(str(a) + ' != ' + str(b))
@@ -146,3 +147,14 @@ def get_input_stream_codes(input_code: Tuple[int]) -> List[Tuple[int]]:
             return sum(code)>0
 
         return list(map(lambda x: input_code + x, filter(_constraints, itertools.product((0,1), repeat=len(input_code)))))
+
+def get_full_shape(code: Tuple[int], shape: Tuple[int]) -> List[int]:
+    s = list(shape[:2])
+    i = 2
+    for dim in code:
+        if dim:
+            s.append(shape[i])
+            i+=1
+        else:
+            s.append(1)
+    return s
