@@ -8,7 +8,7 @@ from neural_networks.memory_efficient_state import ME_State
 from neural_networks.pool_conv_sum_nonlin_pool import Pool_conv_sum_nonlin_pool
 from neural_networks.utils import init_weights
 from collections import Counter
-from typing import Tuple
+from typing import Tuple, List
 from solvers.encoding import ProblemInstanceEncoding
 NUM_DIMENSIONS = ProblemInstanceEncoding.NUM_DIMENSIONS
 T = torch.Tensor
@@ -23,16 +23,17 @@ class Memory_efficient_network(nn.Module):
     Dimensions will be removed and the pool_conv_sum_nonlin_pool function will be applied again to form the outputs.
     """
     def __init__(self,
-                num_input_channels: Tuple[dict],
+                num_input_channels: tuple,
                 num_output_channels: int,
                 dim_elimination_max_pooling=False,
                 num_hidden_layers=1,
-                num_neurons=128,
+                num_neurons=32,
                 activation_func: type(F.leaky_relu) = F.leaky_relu,
                 global_pool_func: type(torchMax) = torchMax):
         """
         :param num_input_channels: Dictionary that assigns a number of channels to each input code
         :param num_output_channels: Number of output channels for the actor component
+        :param static_features: List of the stream_codes that will be used for long term inferences
         :param dim_elimination_max_pooling: If true, dimensions will be removed via max pooling
         :param num_hidden_layers: Number of layers between first convolution and the two output layers 
         :param num_neurons: Number of neurons / filters per conv layer
@@ -46,40 +47,46 @@ class Memory_efficient_network(nn.Module):
         self.dim_elimination_max_pooling = dim_elimination_max_pooling
         self.num_hidden_layers = num_hidden_layers
 
-        self.memory_dim = num_input_channels[1]
-        neurons_dict = Counter(dict.fromkeys(num_input_channels[0], num_neurons))
-        
-        self.layers = nn.ModuleList()
-        # Generate input and hidden layers
-        for layer_number in range(num_hidden_layers + 1):
-            if layer_number == 0:
-                self.layers.append(Pool_conv_sum_nonlin_pool(
-                    num_input_channels=num_input_channels[0],
-                    num_output_channels=num_neurons,
-                    activation_func=activation_func,
-                    global_pool_func=global_pool_func))
-            else:
-                self.layers.append(Pool_conv_sum_nonlin_pool(
-                    num_input_channels=neurons_dict,
-                    num_output_channels=num_neurons,
-                    activation_func=activation_func,
-                    global_pool_func=global_pool_func))
-        
-        # Generate output layers
+
+        all_feature_dim, self.memory_dim, self.dynamic_features, self.static_features = num_input_channels
+        a = set(self.static_features) & set(self.memory_dim.keys())
+
+        #####################################
+        # Generate input / hidden layers    #
+        #####################################
+        self.dynamic_layer = nn.ModuleList()
+        self.static_layer = nn.ModuleList()
+        for layer_number in range(num_hidden_layers+1):
+            self.dynamic_layer.append(Pool_conv_sum_nonlin_pool(
+                num_input_channels={x: all_feature_dim[x] if layer_number==0 else num_neurons for x in self.dynamic_features},
+                num_output_channels=num_neurons,
+                output_stream_codes=self.dynamic_features,
+                activation_func=activation_func,
+                global_pool_func=global_pool_func))
+            self.static_layer.append(Pool_conv_sum_nonlin_pool(
+                num_input_channels={x: all_feature_dim[x] if layer_number==0 else num_neurons for x in self.static_features},
+                num_output_channels=num_neurons if layer_number < num_hidden_layers else next(iter(self.memory_dim.values())),
+                output_stream_codes=self.static_features if layer_number < num_hidden_layers else set(self.static_features) & set(self.memory_dim.keys()),
+                activation_func=activation_func,
+                global_pool_func=global_pool_func))
+
+        #####################################
+        # Generate output layers            #
+        #####################################
+        # Create Actor and Critic output layer
         self.output_layer_actor_critic = Pool_conv_sum_nonlin_pool(
-            num_input_channels=neurons_dict+neurons_dict,
+            num_input_channels={x: 2*num_neurons for x in self.dynamic_features},
             num_output_channels=num_output_channels*2,
             eliminate_dimension=self.eliminate_dimension,
             activation_func=activation_func,
             global_pool_func=global_pool_func)
-
-        # Only create layer if memory is propagated
+        # Create memory output layer
         self.memory_output = Pool_conv_sum_nonlin_pool(
-            num_input_channels=neurons_dict,
-            num_output_channels=list(self.memory_dim.values())[0],
-            output_stream_codes=self.memory_dim.keys(),
+            num_input_channels={x: num_neurons for x in self.dynamic_features},
+            num_output_channels=next(iter(self.memory_dim.values())),
+            output_stream_codes=[code for code in self.memory_dim.keys() if code not in self.static_features],
             activation_func=activation_func,
-            global_pool_func=global_pool_func) if self.memory_dim else None
+            global_pool_func=global_pool_func)
 
         self.apply(init_weights)
         print("Created network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons and", getNumberParams(self), 'trainable paramters')
@@ -91,24 +98,33 @@ class Memory_efficient_network(nn.Module):
         # Concat input and memory
         input_t.addAll(memory_t)
 
+        # Devide in tempory and static features:
+        dynamic_state = input_t
+        static_state = ME_State()
+        dynamic_state = ME_State()
+        for code in self.static_features:
+            static_state.store(input_t.get(code))
+        for code in self.dynamic_features:
+            dynamic_state.store(input_t.get(code))
+
+        # Apply Input and hidden layers
         for i in range(self.num_hidden_layers + 1):
-            input_t = self.layers[i](input_t)
+            dynamic_state = self.dynamic_layer[i](dynamic_state)
+            static_state = self.static_layer[i](static_state)
 
+        # Calculate action and critic output. Action and critic should be calculated independently (Form = Bx2xP)
         pool_func = torchMax if self.dim_elimination_max_pooling else T.mean
-
-        double_input = input_t.clone()
-        double_input.addAll(input_t)
-        # Calculate action and critic output (Form = Bx2xP)
+        double_input = dynamic_state.clone()
+        double_input.addAll(dynamic_state)
         action_critic = self.output_layer_actor_critic(double_input, pool=False, pool_func=pool_func)
-
-        action_distributions, values = action_critic.select(1,0).unsqueeze(1), action_critic.select(1,1)
-
-        # Sum everything up
-        values = values.sum(-1)
+        action_distributions, values = action_critic.narrow(1,0, self.num_output_channels), action_critic.narrow(1,self.num_output_channels-1, self.num_output_channels)
+        values = values.sum(-1).sum(-1)
 
         # Calculate memory(t+1)
         if self.memory_output:
-            memory_t = self.memory_output(input_t).apply_fn(torch.tanh)
+            memory_t = self.memory_output(dynamic_state)
+            memory_t.addAll(static_state)
+            memory_t = memory_t.apply_fn(torch.tanh)
 
         # detach memory for truncated backpropagation through time
         return action_distributions, values, memory_t.detach()

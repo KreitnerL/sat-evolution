@@ -37,59 +37,56 @@ class EncodingStrategy(ABC):
 
 
 class ProblemInstanceEncoding(EncodingStrategy):
+
+    NUM_DIMENSIONS=4
     """
     Improved encoding strategy to be used for the 3SAT problem.
     """
     def encode(self, population: Population, generations_left, memory: List[torch.Tensor] = None) -> ME_State:
         """
-        :returns: ME_State with following features:\n
-            - problem instance (2x)1xGxE
-            - genome of each individual (2x)PxGx1
-            - fitness of each individual Px1x1
-            - Participation of each variable in clauses 1xGx1
-            - Participation of each variable in unsatistfied clauses 1xGx1
-            - Satisfied clauses Px1xE
-            - Number of clauses 1x1x1
-            - Number of variables 1x1x1
-            - Generations left 1x1x1
-            - memory of the last step
+        :returns: ME_State with all relevant features in the form of [B,C,P,E,G,G].\n
+        B = Batch size
+        C = Channel size
+        P = Population size
+        E = Equation size (#clauses)
+        G = Genome size (#variables)
         """
         P = population.size
         G = population.cnf.num_variables
         E = population.cnf.num_clauses
         # Problem instance (2x)1xGxE
-        problem  = torch.tensor(population.cnf.mat).float().permute(0,2,1).view(1,2,1,G,E)
+        problem  = torch.tensor(population.cnf.mat).float().view(1,2,1,E,G,1)
 
         # Solution of each individual (genome) (2x)PxGx1
-        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(1,0,2).view(1,2,P,G,1)
+        population_data = torch.tensor([solution.get_assignments() for solution in population.get_solutions()]).float().permute(1,0,2).view(1,2,P,1,G,1)
 
         # Participation in clauses 1xGx1
-        variable_participation = torch.tensor(population.cnf.get_participation() / population.cnf.num_clauses).float().view(1,1,1,G,1)
+        variable_participation = torch.tensor(population.cnf.get_participation() / population.cnf.num_clauses).float().view(1,1,1,1,G,1)
 
         # Make value per genome PxGx1
-        make_values = torch.tensor([solution.get_make_values() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,G,1)
+        make_values = torch.tensor([solution.get_make_values() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,1,G,1)
 
         # Break value per genome PxGx1
-        break_values = torch.tensor([solution.get_break_values() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,G,1)
+        break_values = torch.tensor([solution.get_break_values() / population.cnf.num_clauses for solution in population.get_solutions()]).float().view(1,1,P,1,G,1)
 
         # Satisfied clauses Px1xE
-        τ_satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().view(1,1,P,1,E)
+        τ_satisfied_clauses = torch.tensor([solution.get_satisfied_clauses() for solution in population.get_solutions()]).float().view(1,1,P,E,1,1)
 
         # Fitness of each individual Px1x1
-        population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().view(1,1,P,1,1)
+        population_fitness = torch.tensor([solution.get_score() for solution in population.get_solutions()]).float().view(1,1,P,1,1,1)
 
         # Number of clauses 1x1x1
-        num_clauses = torch.tensor([population.cnf.num_clauses]).float().view(1,1,1,1,1)
+        num_clauses = torch.tensor([population.cnf.num_clauses]).float().view(1,1,1,1,1,1)
 
         # Number of variables 1x1x1
-        num_vars = torch.tensor([population.cnf.num_variables]).float().view(1,1,1,1,1)
+        num_vars = torch.tensor([population.cnf.num_variables]).float().view(1,1,1,1,1,1)
 
         # Generations_left 1x1x1
-        generations_left = torch.tensor([generations_left]).float().view(1,1,1,1,1)
+        generations_left = torch.tensor([generations_left]).float().view(1,1,1,1,1,1)
 
         # Initialize memory with 0
         if not memory and self.num_channels()[1]:
-            memory = ME_State([torch.zeros(1,channels, P if p else 1, G if g else 1, E if e else 1).cuda() for (p,g,e), channels in self.num_channels()[1].items()])
+            memory = ME_State([torch.zeros(1, channels, P if p else 1, E if e else 1, G if g else 1, G if g2 else 1).cuda() for (p,e,g,g2), channels in self.num_channels()[1].items()])
 
         return ME_State([problem,
                         population_data,
@@ -103,24 +100,48 @@ class ProblemInstanceEncoding(EncodingStrategy):
                         generations_left],
                         memory)
     
-    def num_channels(self):
+    def num_channels(self) -> tuple:
         """
-        Returns a tuple of dictionaries. 1) Maps input_stream code to number of channels. 2) Maps memory_stream code to number of channels.
+        Returns a Tuple with: \n
+        1) Dict input_stream_code to number of channels.\n
+        2) Maps memory_stream_code to number of channels.\n
+        3) List of dynamic feature codes
+        4) List of static feature codes
         """
+        P = G = E = 1
+        # Dict of all feature dimensions and their respective channels
         features = Counter({
-            (0,1,1): 2,
-            (1,1,0): 4,
-            (1,0,1): 1,
-            (0,1,0): 1,
-            (1,0,0): 1,
-            (0,0,0): 3
+            (0,E,G,0): 2,
+            (P,0,G,0): 4,
+            (P,E,0,0): 1,
+            (0,0,G,0): 1,
+            (P,0,0,0): 1,
+            (0,0,0,0): 3
         })
+        # Dict of all memory feature dimensions and their respective channels.
         memory_dim = Counter({
-            (1,1,0): 5,
-            (1,0,1): 5,
-            (1,0,0): 5
+            (P,0,G,0): 5,
+            (P,E,0,0): 5,
+            (P,0,0,0): 5,
+            (0,E,G,0): 5,
+            (0,0,G,G): 5
         })
-        return features+memory_dim, memory_dim
+        # List of all features that change dynamically while searching for a solution
+        dynamic_features = [
+            (P,0,G,0),
+            (P,E,0,0),
+            (P,0,0,0),
+            (0,E,G,0),
+            (0,0,0,0)
+        ]
+        # List of all features that are used for long term inferences
+        static_features = [
+            (0,E,G,0),
+            (0,0,G,G),
+            (0,0,G,0),
+            (0,0,0,0)
+        ]
+        return features+memory_dim, memory_dim, dynamic_features, static_features
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """
