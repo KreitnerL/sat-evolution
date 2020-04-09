@@ -51,7 +51,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
         E = Equation size (#clauses)
         G = Genome size (#variables)
         """
-        P = population.size
+        P = population.get_size()
         G = population.cnf.num_variables
         E = population.cnf.num_clauses
         # Problem instance (2x)1xGxE

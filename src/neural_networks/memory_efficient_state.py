@@ -100,13 +100,19 @@ class ME_State:
         """
         Applies the cuda() function to all stored tensors
         """
-        return self.apply_fn(lambda array: Variable(array).cuda())
+        return self.apply_fn(lambda array: array.cuda())
 
     def detach(self) -> ME_State:
         """
         Detaches all stored Tensors from the GPU
         """
         return self.apply_fn(lambda array: array.detach())
+
+    def cpu(self) -> ME_State:
+        """
+        Moves all stored Tensors to the CPU
+        """
+        return self.apply_fn(lambda array: array.cpu())
 
     def getCode(self, size: Tuple[int]) -> Tuple[int]:
         """

@@ -26,6 +26,7 @@ class Memory_efficient_network(nn.Module):
                 num_input_channels: tuple,
                 num_output_channels: int,
                 dim_elimination_max_pooling=False,
+                eliminate_dimension=[0]+[1]*(NUM_DIMENSIONS-1),
                 num_hidden_layers=1,
                 num_neurons=32,
                 activation_func: type(F.leaky_relu) = F.leaky_relu,
@@ -43,7 +44,7 @@ class Memory_efficient_network(nn.Module):
         super().__init__()
         self.num_output_channels = num_output_channels
         # For output eliminate all dimensions except Population dim
-        self.eliminate_dimension = tuple([0]+[1]*(NUM_DIMENSIONS-1))
+        self.eliminate_dimension = eliminate_dimension
         self.dim_elimination_max_pooling = dim_elimination_max_pooling
         self.num_hidden_layers = num_hidden_layers
 
@@ -75,7 +76,7 @@ class Memory_efficient_network(nn.Module):
         #####################################
         # Create Actor and Critic output layer
         self.output_layer_actor_critic = Pool_conv_sum_nonlin_pool(
-            num_input_channels={x: 2*num_neurons for x in self.dynamic_features},
+            num_input_channels={x: num_neurons for x in self.dynamic_features},
             num_output_channels=num_output_channels*2,
             eliminate_dimension=self.eliminate_dimension,
             activation_func=activation_func,
@@ -114,11 +115,10 @@ class Memory_efficient_network(nn.Module):
 
         # Calculate action and critic output. Action and critic should be calculated independently (Form = Bx2xP)
         pool_func = torchMax if self.dim_elimination_max_pooling else T.mean
-        double_input = dynamic_state.clone()
-        double_input.addAll(dynamic_state)
-        action_critic = self.output_layer_actor_critic(double_input, pool=False, pool_func=pool_func)
+        action_critic = self.output_layer_actor_critic(dynamic_state, pool=False, pool_func=pool_func)
         action_distributions, values = action_critic.narrow(1,0, self.num_output_channels), action_critic.narrow(1,self.num_output_channels-1, self.num_output_channels)
-        values = values.sum(-1).sum(-1)
+        for dim in range(len(self.eliminate_dimension)-sum(self.eliminate_dimension)+1):
+            values = values.sum(-1)
 
         # Calculate memory(t+1)
         if self.memory_output:
@@ -127,7 +127,7 @@ class Memory_efficient_network(nn.Module):
             memory_t = memory_t.apply_fn(torch.tanh)
 
         # detach memory for truncated backpropagation through time
-        return action_distributions, values, memory_t.detach()
+        return action_distributions, values, memory_t.cpu().detach()
 
 def getNumberParams(network):
     num_params = 0

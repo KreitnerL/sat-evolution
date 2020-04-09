@@ -13,7 +13,6 @@ class Population(object):
     def __init__(self, solutions: List[Solution], cnf: CNF3):
         self.cnf = cnf
         self.solutions = solutions
-        self.size = len(solutions)
 
     @staticmethod
     def random(cnf: CNF3, size):
@@ -25,7 +24,7 @@ class Population(object):
         return Population(solutions, cnf)
 
     def get_size(self):
-        return self.size
+        return len(self.solutions)
 
     def get_solutions(self):
         return self.solutions
@@ -76,6 +75,9 @@ class Population(object):
     def local_search(self, num_solutions, max_variables):
         for i in range(0, num_solutions):
             self.solutions[i].local_search(max_variables)
+
+    def get_average_score(self):
+        return sum([p.score for p in self.solutions])/self.get_size()
 
     @staticmethod
     def _pick_two(solutions):

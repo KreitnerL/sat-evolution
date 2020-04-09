@@ -139,8 +139,8 @@ class SolverWithGeneMutationControl(SatSolver):
      The network outputs a mutation rate for each variable of each solution.
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2):
-        strategy = GeneMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2, learning_rate=1e-6):
+        strategy = GeneMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
     def perform_one_generation(self, generations_left, mutation_rates_log=None):
@@ -177,8 +177,8 @@ class SolverWithFitnessShapingCrossover(SatSolver):
      This is done before the crossover step so the network can choose which individuals are available for crossover.
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2):
-        strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2, learning_rate=5e-6):
+        strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
     def perform_one_generation(self, generations_left):
@@ -203,8 +203,8 @@ class SolverWithFitnessShapingSelection(SatSolver):
      The network outputs factors for each individuals, which are multiplied with the individual fitness.
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2):
-        strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2, learning_rate=5e-6):
+        strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
     def perform_one_generation(self, generations_left, factors_log=None):

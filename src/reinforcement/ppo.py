@@ -136,7 +136,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
                 t.update(1)
         t.close()
 
-        save_loss(sum(loss_item_array)/len(loss_item_array), loss_item_array[0], loss_item_array[-1])
+        save_loss(loss_item_array)
         self.actor_experience_store = []
         self.update_exploration_rate()
 
