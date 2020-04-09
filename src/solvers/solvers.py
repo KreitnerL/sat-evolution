@@ -1,4 +1,4 @@
-from strategies.startegies import *
+from strategies.strategies import *
 from abc import abstractmethod
 from sat.population import Population
 from math import log

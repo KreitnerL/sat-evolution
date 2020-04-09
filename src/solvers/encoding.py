@@ -105,8 +105,8 @@ class ProblemInstanceEncoding(EncodingStrategy):
         Returns a Tuple with: \n
         1) Dict input_stream_code to number of channels.\n
         2) Maps memory_stream_code to number of channels.\n
-        3) List of dynamic feature codes
-        4) List of static feature codes
+        3) List of practical feature codes
+        4) List of theoretical feature codes
         """
         P = G = E = 1
         # Dict of all feature dimensions and their respective channels
@@ -127,7 +127,7 @@ class ProblemInstanceEncoding(EncodingStrategy):
             (0,0,G,G): 5
         })
         # List of all features that change dynamically while searching for a solution
-        dynamic_features = [
+        practical_features = [
             (P,0,G,0),
             (P,E,0,0),
             (P,0,0,0),
@@ -135,13 +135,17 @@ class ProblemInstanceEncoding(EncodingStrategy):
             (0,0,0,0)
         ]
         # List of all features that are used for long term inferences
-        static_features = [
+        theoretical_features = [
             (0,E,G,0),
             (0,0,G,G),
             (0,0,G,0),
             (0,0,0,0)
         ]
-        return features+memory_dim, memory_dim, dynamic_features, static_features
+        # results of the theoretical reasoining that are used for practical reasoning
+        report = [
+            (0,E,G,0)
+        ]
+        return features+memory_dim, memory_dim, practical_features, theoretical_features, report
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """
