@@ -31,7 +31,7 @@ Code for encoding populations and problems for neural networks and running the g
 Implementation of new classes based on Jan Schuchardt's code base.
 
 ### Strategies
-Code for neural network based startegies, used as part of a solver to replace one step. Implementation of new classes based on Jan Schuchardt's code base.
+Code for neural network based strategies, used as part of a solver to replace one step. Implementation of new classes based on Jan Schuchardt's code base.
 
 ### utils
 Utility code for training and validation.
