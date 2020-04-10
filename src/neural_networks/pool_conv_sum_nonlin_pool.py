@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from neural_networks.memory_efficient_state import ME_State
+from neural_networks.feature_collection import Feature_Collection
 from typing import List, Tuple
 import torch.nn.functional as F
 import itertools
@@ -32,7 +32,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         activation_func: type(F.leaky_relu) = F.leaky_relu,
         global_pool_func: type(torchMax) = torchMax):
         """
-        Generates a submodule that can take a ME_State (list of features) with the given feature dimensions and returns either a concatenated tensor or a ME_State.
+        Generates a submodule that can take a Feature_Collection (list of features) with the given feature dimensions and returns either a concatenated tensor or a Feature_Collection.
         :param num_input_channels: Dictionary that assigns a number of channels to each input code
         :param num_output_channels: Dictionary that assigns a number of output channels to each input code
         :param output_stream_codes: List of codes that fixates the dimension of the output tensors. If not set, the network will return the same input dimensions as the input
@@ -57,26 +57,26 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
             for input_code in l:
                 self.layers[str(input_code)] = conv_map[sum(input_code[NUM_DIMENSIONS:])](num_input_channels[input_code[:NUM_DIMENSIONS]], num_output_channels, 1)
 
-    def forward(self, me_state: ME_State, pool=True, pool_func=None):
+    def forward(self, feature_collection: Feature_Collection, pool=True, pool_func=None):
         if not pool_func:
             pool_func = self.global_pool_func
 
         # Remove unwanted dimensions
         if sum(self.eliminate_dimension) > 0:
-            new = ME_State()
-            for code, x in me_state.items():
+            new = Feature_Collection()
+            for code, x in feature_collection.items():
                 for i, dim in enumerate(np.logical_and(code, self.eliminate_dimension)):
                     if dim:
                         x = self.global_pool_func(x, 2+i, True)
                 new.store(x, overwrite=True)
-            me_state = new
-        self.checkInput(me_state)
+            feature_collection = new
+        self.checkInput(feature_collection)
         
         conv_list = dict()
 
         # Pooling
         for input_code, sub_input_code_list in self.input_stream_codes.items():
-            input_stream = me_state.get(input_code)
+            input_stream = feature_collection.get(input_code)
             for sub_input_code in sub_input_code_list:
                 sub_input_stream = input_stream
                 for i, dim in reversed(list(enumerate(sub_input_code[NUM_DIMENSIONS:]))):
@@ -86,7 +86,7 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
                 if sub_input_stream.dim()<=2:
                     sub_input_stream = sub_input_stream.unsqueeze(-1)
                 conv_list[sub_input_code] = sub_input_stream
-        me_state = None
+        feature_collection = None
 
         # Conv
         for input_code, input_stream in conv_list.items():
@@ -109,21 +109,21 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
             return sum_PxGxE.view(*sum_PxGxE.shape[0:2], *tuple(filter(lambda x: x>1, sum_PxGxE.shape[2:])))
 
         # Pooling
-        me_state = ME_State()
+        feature_collection = Feature_Collection()
         for input_code in self.output_stream_codes:
             input_stream = sum_PxGxE
             for i, dim in enumerate(input_code):
                 if not dim:
                     input_stream = self.global_pool_func(input_stream, 2+i, True)
-            me_state.store(input_stream)
+            feature_collection.store(input_stream)
         
-        return me_state
+        return feature_collection
 
-    def checkInput(self, me_state: ME_State):
+    def checkInput(self, feature_collection: Feature_Collection):
         """
-        Thows an exception if the given me_state does not have same feature dimensions (after eliminate dimensions!) as stated in the initialization
+        Thows an exception if the given feature_collection does not have same feature dimensions (after eliminate dimensions!) as stated in the initialization
         """
-        a = set(me_state.keys())
+        a = set(feature_collection.keys())
         b = set(self.input_stream_codes.keys())
         if a != b:
             a, b = list(a), list(b)

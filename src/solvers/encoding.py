@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from sat.population import Population
-from neural_networks.memory_efficient_state import ME_State
+from neural_networks.feature_collection import Feature_Collection
 from collections import Counter
 from typing import List
 
@@ -42,9 +42,9 @@ class ProblemInstanceEncoding(EncodingStrategy):
     """
     Improved encoding strategy to be used for the 3SAT problem.
     """
-    def encode(self, population: Population, generations_left, memory: List[torch.Tensor] = None) -> ME_State:
+    def encode(self, population: Population, generations_left, memory: List[torch.Tensor] = None) -> Feature_Collection:
         """
-        :returns: ME_State with all relevant features in the form of [B,C,P,E,G,G].\n
+        :returns: Feature_Collection with all relevant features in the form of [B,C,P,E,G,G].\n
         B = Batch size
         C = Channel size
         P = Population size
@@ -86,9 +86,9 @@ class ProblemInstanceEncoding(EncodingStrategy):
 
         # Initialize memory with 0
         if not memory and self.num_channels()[1]:
-            memory = ME_State([torch.zeros(1, channels, P if p else 1, E if e else 1, G if g else 1, G if g2 else 1).cuda() for (p,e,g,g2), channels in self.num_channels()[1].items()])
+            memory = Feature_Collection([torch.zeros(1, channels, P if p else 1, E if e else 1, G if g else 1, G if g2 else 1).cuda() for (p,e,g,g2), channels in self.num_channels()[1].items()])
 
-        return ME_State([problem,
+        return Feature_Collection([problem,
                         population_data,
                         make_values,
                         break_values,

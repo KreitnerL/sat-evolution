@@ -7,7 +7,7 @@ import torch.optim as optim
 
 from reinforcement.reinforcement import ReinforcementLearningStrategy
 
-from neural_networks.memory_efficient_state import concat
+from neural_networks.feature_collection import concat
 from utils.training import save_loss
 from tqdm import tqdm
 

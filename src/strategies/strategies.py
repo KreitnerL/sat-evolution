@@ -13,9 +13,9 @@ from torch.distributions.beta import Beta
 from torch.distributions.bernoulli import Bernoulli
 from torch.distributions.binomial import Binomial
 from torch.distributions.normal import Normal
-from neural_networks.memory_efficient_state import ME_State
+from neural_networks.feature_collection import Feature_Collection
 
-from neural_networks.memory_efficient_network import Memory_efficient_network
+from neural_networks.sat_network import SAT_network
 from reinforcement.ppo import PPOStrategy
 from strategies.strategy import Strategy
 
@@ -49,7 +49,7 @@ class IndividualMutationControl(PPOStrategy):
 
         num_output_channels = 2
 
-        network = Memory_efficient_network(
+        network = SAT_network(
             encoding_strategy.num_channels(),
             num_output_channels,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -76,7 +76,7 @@ class IndividualMutationControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state: ME_State):
+    def select_action(self, state: Feature_Collection):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())
@@ -132,7 +132,7 @@ class GeneMutationControl(PPOStrategy):
 
         num_output_channels = 2
 
-        network = Memory_efficient_network(
+        network = SAT_network(
             encoding_strategy.num_channels(),
             num_output_channels,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -160,7 +160,7 @@ class GeneMutationControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state: ME_State):
+    def select_action(self, state: Feature_Collection):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())
@@ -216,7 +216,7 @@ class FitnessShapingControl(PPOStrategy):
 
         num_output_channels = 1
 
-        network = Memory_efficient_network(
+        network = SAT_network(
             encoding_strategy.num_channels(),
             num_output_channels,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -243,7 +243,7 @@ class FitnessShapingControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state: ME_State):
+    def select_action(self, state: Feature_Collection):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())

@@ -8,7 +8,7 @@ class SatSolver(object):
      Has specific network output, configurable input
      '''
 
-    def __init__(self, input_encoder, population_size, strategy: PPOStrategy, num_hidden_layers=1, satisfied_reward_factor=2):
+    def __init__(self, input_encoder, population_size, strategy: PPOStrategy, num_hidden_layers=1, satisfied_reward_factor=5):
         self.input_encoder = input_encoder
         self.population_size = population_size
         self.satisfied_reward_factor = satisfied_reward_factor
@@ -69,7 +69,7 @@ class SatSolver(object):
 
         # if solved, increase reward
         if score == self.problem.num_clauses:
-            reward = self.calc_reward(self.best_score, score * self.satisfied_reward_factor)
+            reward = self.calc_reward(self.best_score, score) * self.satisfied_reward_factor
         elif score >= self.best_score:
             reward = self.calc_reward(self.best_score, score)
         else:

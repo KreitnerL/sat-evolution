@@ -1,4 +1,4 @@
-from utils.training import train_solver, pre_train_solver
+from utils.training import train_solver
 from solvers.encoding import ProblemInstanceEncoding
 from solvers.solvers import SolverWithIndividualMutationControl
 from solvers.solvers import SolverWithGeneMutationControl
@@ -46,20 +46,13 @@ solverMap = {
     'selection': SolverWithFitnessShapingSelection
 }
 
-solver = solverMap.get(solver_arg, None)(encoder, population_size, num_hidden_layers=1)
+solver = solverMap.get(solver_arg, None)(encoder, population_size, num_hidden_layers=(1,0), learning_rate=5e-6)
 if solver is not None:
     if weightsdir is not None and os.path.isfile(weightsdir + "baseline"):
         print("loading baseline")
         solver.load_weights(weightsdir + "baseline")
     solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
     if start_at is not None:
-        training_stage = start_at.split(':')
-        if training_stage[0] == "pre":
-            pre_train_solver(solver, outdir, int(training_stage[1]))
-            train_solver(solver, outdir)
-        elif training_stage[0] == "train":
-            train_solver(solver, outdir, int(training_stage[1]))
-        raise ValueError("4th argument must be of for pre:INDEX or train:INDEX")
+            train_solver(solver, outdir, int(start_at))
     else:
-        pre_train_solver(solver, outdir)
         train_solver(solver, outdir)

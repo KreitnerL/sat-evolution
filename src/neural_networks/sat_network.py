@@ -4,7 +4,7 @@ This module contains a memory efficient version of the network, allowing a list 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from neural_networks.memory_efficient_state import ME_State
+from neural_networks.feature_collection import Feature_Collection
 from neural_networks.pool_conv_sum_nonlin_pool import Pool_conv_sum_nonlin_pool
 from neural_networks.utils import init_weights
 from collections import Counter
@@ -14,7 +14,7 @@ NUM_DIMENSIONS = ProblemInstanceEncoding.NUM_DIMENSIONS
 T = torch.Tensor
 torchMax = lambda *x: torch.max(*x)[0]
 
-class Memory_efficient_network(nn.Module):
+class SAT_network(nn.Module):
     """
     This network can process features of different sized dimensions without broadcasting, leading to memory efficency.
     The outputs are a 2D tensor actor ouput and a 0D tensor as critic output. The overall structure is as follows: \n
@@ -96,7 +96,7 @@ class Memory_efficient_network(nn.Module):
         self.apply(init_weights)
         print("Created network with", num_hidden_layers, "hidden layers,", num_neurons, "neurons and", getNumberParams(self), 'trainable paramters')
 
-    def forward(self, input_t: ME_State):
+    def forward(self, input_t: Feature_Collection):
         torch.cuda.empty_cache()
         memory_t = input_t.getMemory()
 
@@ -105,8 +105,8 @@ class Memory_efficient_network(nn.Module):
 
         # Devide in tempory and theoretical features:
         practical_state = input_t
-        theoretical_state = ME_State()
-        practical_state = ME_State()
+        theoretical_state = Feature_Collection()
+        practical_state = Feature_Collection()
         for code in self.theoretical_features:
             theoretical_state.store(input_t.get(code))
         for code in self.practical_features:
