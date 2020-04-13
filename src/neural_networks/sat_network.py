@@ -4,6 +4,7 @@ This module contains a memory efficient version of the network, allowing a list 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.utils.checkpoint as cp
 from neural_networks.feature_collection import Feature_Collection
 from neural_networks.pool_conv_sum_nonlin_pool import Pool_conv_sum_nonlin_pool
 from neural_networks.utils import init_weights
@@ -42,6 +43,8 @@ class SAT_network(nn.Module):
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
         super().__init__()
+        self.dummy = T([])
+        self.dummy.requires_grad = True
         self.num_output_channels = num_output_channels
         # For output eliminate all dimensions except Population dim
         self.eliminate_dimension = eliminate_dimension
@@ -58,7 +61,7 @@ class SAT_network(nn.Module):
         for layer_number in range(num_hidden_layers[1]+1):
             self.theoretical_layer.append(Pool_conv_sum_nonlin_pool(
                 num_input_channels={x: all_feature_dim[x] if layer_number==0 else num_neurons for x in self.theoretical_features},
-                num_output_channels=num_neurons if layer_number < num_hidden_layers[1] else next(iter(self.memory_dim.values())),
+                num_output_channels=num_neurons if layer_number < num_hidden_layers[1] else max(self.memory_dim.values()),
                 output_stream_codes=self.theoretical_features if layer_number < num_hidden_layers[1] else set(self.theoretical_features) & set(self.memory_dim.keys()),
                 activation_func=activation_func,
                 global_pool_func=global_pool_func))
@@ -98,11 +101,17 @@ class SAT_network(nn.Module):
 
     def forward(self, input_t: Feature_Collection):
         torch.cuda.empty_cache()
-        memory_t = input_t.getMemory()
-
         # Concat input and memory
-        input_t.addAll(memory_t)
+        input_t.addAll(input_t.getMemory())
+        # Use checkpointing for network to prevent storing itermediate activations (see https://pytorch.org/docs/stable/checkpoint.html)
+        # Note:
+        # 1) Checkpoint only allows a tuple of tensors as inputs / outputs. 
+        # 2) If all inputs have required_grad=False it will not calculate the grad_fn. => Insert Dummy tensor with required_grad=True
+        action_distributions, values, *memory_t = cp.checkpoint(self.bottleneck, self.dummy, *input_t.values())
+        return action_distributions, values, Feature_Collection(memory_t)
 
+    def bottleneck(self, _dummy, *features):
+        input_t = Feature_Collection(features)
         # Devide in tempory and theoretical features:
         practical_state = input_t
         theoretical_state = Feature_Collection()
@@ -134,10 +143,10 @@ class SAT_network(nn.Module):
         if self.memory_output:
             memory_t = self.memory_output(practical_state)
             memory_t.addAll(theoretical_state)
-            memory_t = memory_t.apply_fn(torch.tanh)
+            memory_t = memory_t.apply_fn(torch.tanh).cpu()
 
         # detach memory for truncated backpropagation through time
-        return action_distributions, values, memory_t.cpu().detach()
+        return (action_distributions, values) + tuple(memory_t.values())
 
 def getNumberParams(network):
     num_params = 0

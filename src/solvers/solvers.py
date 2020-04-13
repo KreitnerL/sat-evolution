@@ -8,7 +8,7 @@ class SatSolver(object):
      Has specific network output, configurable input
      '''
 
-    def __init__(self, input_encoder, population_size, strategy: PPOStrategy, num_hidden_layers=1, satisfied_reward_factor=5):
+    def __init__(self, input_encoder, population_size, strategy: PPOStrategy, num_hidden_layers=1, satisfied_reward_factor=5, num_neurons=16):
         self.input_encoder = input_encoder
         self.population_size = population_size
         self.satisfied_reward_factor = satisfied_reward_factor
@@ -27,6 +27,7 @@ class SatSolver(object):
         self.evaluation_function(self.population)
         self.problem = problem
         self.memory = None
+        self.generation = 0
 
     @abstractmethod
     def perform_one_generation(self, generations_left):
@@ -40,7 +41,13 @@ class SatSolver(object):
         self.evaluation_function = evaluation_function
 
     def optimize_network(self):
-        self.strategy.optimize_model()
+        did_fail=False
+        try:
+            self.strategy.optimize_model()
+        except RuntimeError as e:
+            did_fail=True
+        if did_fail:
+            self.strategy.optimize_model(half_batch_size=True)
 
     def save_network(self, dir, iteration):
         self.strategy.store_weights(dir, iteration)
@@ -52,6 +59,7 @@ class SatSolver(object):
         self.population = None
         self.problem = None
         self.best_score = 0
+        self.memory = None
 
     def clear_experience(self):
         self.strategy.episode_memory = []
@@ -102,8 +110,8 @@ class SolverWithIndividualMutationControl(SatSolver):
      Solver that uses the network to control individual mutation rates
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2):
-        strategy = IndividualMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers)
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=5, num_neurons=16):
+        strategy = IndividualMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, num_neurons=num_neurons)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers, satisfied_reward_factor=satisfied_reward_factor)
 
     def perform_one_generation(self, generations_left, mutation_rates_log=None):
@@ -113,7 +121,8 @@ class SolverWithIndividualMutationControl(SatSolver):
         self.evaluation_function(self.population)
 
         state = self.input_encoder.encode(self.population, generations_left, self.memory)
-        mutation_rates, self.memory = self.strategy.select_action(state)
+        mutation_rates, self.memory = self.strategy.select_action(state, self.generation)
+        self.generation += 1
         mutation_rates = mutation_rates.data.cpu().numpy()[0]
 
         # Log mutation rates to file
@@ -139,8 +148,8 @@ class SolverWithGeneMutationControl(SatSolver):
      The network outputs a mutation rate for each variable of each solution.
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2, learning_rate=1e-6):
-        strategy = GeneMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate)
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=5, learning_rate=1e-6, num_neurons=16):
+        strategy = GeneMutationControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate, num_neurons=num_neurons)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
     def perform_one_generation(self, generations_left, mutation_rates_log=None):
@@ -150,7 +159,8 @@ class SolverWithGeneMutationControl(SatSolver):
         self.evaluation_function(self.population)
 
         state = self.input_encoder.encode(self.population, generations_left, self.memory)
-        mutation_rates, self.memory = self.strategy.select_action(state)
+        mutation_rates, self.memory = self.strategy.select_action(state, self.generation)
+        self.generation += 1
         mutation_rates = mutation_rates.data.cpu().numpy()[0]
 
         # Log mutation rates to file
@@ -177,8 +187,8 @@ class SolverWithFitnessShapingCrossover(SatSolver):
      This is done before the crossover step so the network can choose which individuals are available for crossover.
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2, learning_rate=5e-6):
-        strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate)
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=5, learning_rate=5e-6, num_neurons=16):
+        strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate, num_neurons=num_neurons)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
     def perform_one_generation(self, generations_left):
@@ -187,7 +197,8 @@ class SolverWithFitnessShapingCrossover(SatSolver):
         # Modify fitness and perform crossover
         self.evaluation_function(self.population)
         state = self.input_encoder.encode(self.population, generations_left, self.memory)
-        fitness_factors, self.memory = self.strategy.select_action(state)
+        fitness_factors, self.memory = self.strategy.select_action(state, self.generation)
+        self.generation += 1
         fitness_factors = fitness_factors.data.cpu().numpy()[0]
         self.population.modify_fitness(fitness_factors)
         self.population.crossover(n_best=int(self.population_size / 2))
@@ -203,7 +214,7 @@ class SolverWithFitnessShapingSelection(SatSolver):
      The network outputs factors for each individuals, which are multiplied with the individual fitness.
      '''
 
-    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=2, learning_rate=5e-6):
+    def __init__(self, input_encoder, population_size, num_hidden_layers=1, satisfied_reward_factor=5, learning_rate=5e-6, num_neurons=16):
         strategy = FitnessShapingControl(input_encoder, "", 4, training=True, num_hidden_layers=num_hidden_layers, learning_rate=learning_rate)
         super().__init__(input_encoder, population_size, strategy, num_hidden_layers=num_hidden_layers)
 
@@ -214,7 +225,8 @@ class SolverWithFitnessShapingSelection(SatSolver):
         # Modify fitness and perform selection
         self.evaluation_function(self.population)
         state = self.input_encoder.encode(self.population, generations_left, self.memory)
-        fitness_factors, self.memory = self.strategy.select_action(state)
+        fitness_factors, self.memory = self.strategy.select_action(state, self.generation)
+        self.generation += 1
         fitness_factors = fitness_factors.data.cpu().numpy()[0]
         self.population.modify_fitness(fitness_factors)
         self.population.selection(self.population_size)

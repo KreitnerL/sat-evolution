@@ -19,7 +19,6 @@ from neural_networks.sat_network import SAT_network
 from reinforcement.ppo import PPOStrategy
 from strategies.strategy import Strategy
 
-
 class IndividualMutationControl(PPOStrategy):
 
     """
@@ -76,10 +75,12 @@ class IndividualMutationControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state: Feature_Collection):
+    def select_action(self, state: Feature_Collection, generation:int):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())
+
+        memory = truncate(memory, generation)
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -160,10 +161,13 @@ class GeneMutationControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state: Feature_Collection):
+    def select_action(self, state: Feature_Collection, generation:int):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())
+
+        memory = truncate(memory, generation)
+
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
 
@@ -243,10 +247,11 @@ class FitnessShapingControl(PPOStrategy):
                          value_loss_factor=value_loss_factor
                          )
 
-    def select_action(self, state: Feature_Collection):
+    def select_action(self, state: Feature_Collection, generation:int):
         self.optimizer.zero_grad()
 
         distribution_params, _, memory = self.network(state.to_cuda_variable())
+        memory = truncate(memory, generation)
 
         if torch.isnan(distribution_params).any():
             raise ValueError('Nan detected')
@@ -267,3 +272,8 @@ class FitnessShapingControl(PPOStrategy):
     def create_distribution(self, distribution_params):
         variance = 0.00001 + F.softplus(distribution_params[:, 0, :])
         return Normal(distribution_params[:, 0, :], variance)
+
+def truncate(memory: Feature_Collection, generation: int):
+    if (generation+1) % 10 == 0:
+        return memory.detach()
+    return memory

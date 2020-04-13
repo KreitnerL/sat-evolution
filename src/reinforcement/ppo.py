@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from random import shuffle, choice
+from math import ceil
 
 import torch
 import torch.nn as nn
@@ -117,11 +118,10 @@ class PPOStrategy(ReinforcementLearningStrategy):
         if half_batch_size:
             self.batch_size = int(self.batch_size/2)
         loss_item_array = []
-        mini_batches = self.generate_mini_batches()
         
-        t = tqdm(total=self.num_training_epochs*len(mini_batches))
+        t = tqdm(total=self.num_training_epochs*ceil(len(self.actor_experience_store)/self.batch_size))
         for _ in range(self.num_training_epochs):
-
+            mini_batches = self.generate_mini_batches()
             for mini_batch in mini_batches:
 
                 (states,

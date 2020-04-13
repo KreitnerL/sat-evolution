@@ -73,10 +73,11 @@ solverMap = {
 encoder = ProblemInstanceEncoding()
 
 def start(type, solver_arg, outdir, weightsdir, start_at):
+    hyperparamter = encoder.get_hyperparamter()
     if solver_arg == 'vanila':
         solver = VanilaSolver(population_size, 0.05)
     else:
-        solver = solverMap.get(solver_arg, None)(encoder, population_size, num_hidden_layers=(1,1), learning_rate=1e-6)
+        solver = solverMap.get(solver_arg, None)(encoder, population_size, num_neurons = hyperparamter["NUM_NEURONS"], num_hidden_layers=hyperparamter["NUM_HIDDEN_LAYERS"], learning_rate=hyperparamter["LEARNING_RATE"])
     if solver is not None:
         if weightsdir is not None and os.path.isfile(weightsdir + "baseline"):
             print("loading baseline")

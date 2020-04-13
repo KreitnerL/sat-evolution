@@ -118,13 +118,13 @@ class ProblemInstanceEncoding(EncodingStrategy):
             (P,0,0,0): 1,
             (0,0,0,0): 3
         })
-        # Dict of all memory feature dimensions and their respective channels.
+        # Dict of all memory feature dimensions and their respective channels (embedding size).
         memory_dim = Counter({
             (P,0,G,0): 5,
             (P,E,0,0): 5,
             (P,0,0,0): 5,
-            (0,E,G,0): 5,
-            (0,0,G,G): 5
+            (0,E,G,0): 32,
+            (0,0,G,G): 32
         })
         # List of all features that change dynamically while searching for a solution
         practical_features = [
@@ -146,6 +146,13 @@ class ProblemInstanceEncoding(EncodingStrategy):
             (0,E,G,0)
         ]
         return features+memory_dim, memory_dim, practical_features, theoretical_features, report
+
+    def get_hyperparamter(self) -> dict:
+        return {
+            "NUM_NEURONS": 16,
+            "NUM_HIDDEN_LAYERS": (1,1),
+            "LEARNING_RATE": 1e-6
+        }
 
 class PopulationAndVariablesInInvalidClausesEncoding(EncodingStrategy):
     """
