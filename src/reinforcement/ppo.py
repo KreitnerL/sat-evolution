@@ -8,7 +8,7 @@ import torch.optim as optim
 from reinforcement.reinforcement import ReinforcementLearningStrategy
 
 from neural_networks.feature_collection import concat
-from utils.training import save_loss
+from utils.plotter import save_loss
 from tqdm import tqdm
 
 class PPOStrategy(ReinforcementLearningStrategy):
@@ -101,6 +101,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
         self.min_entropy_factor = min_entropy_factor
 
         self.value_loss_factor = value_loss_factor
+        self.did_fail = False
 
     @abstractmethod
     def create_distribution(self, distribution_params):
@@ -111,7 +112,10 @@ class PPOStrategy(ReinforcementLearningStrategy):
         """
         pass
 
-    def optimize_model(self):
+    def optimize_model(self, half_batch_size=False):
+        torch.cuda.empty_cache()
+        if half_batch_size:
+            self.batch_size = int(self.batch_size/2)
         loss_item_array = []
         mini_batches = self.generate_mini_batches()
         
@@ -131,7 +135,7 @@ class PPOStrategy(ReinforcementLearningStrategy):
                 loss = self.calc_loss(states, actions, log_probs_old, advantages, returns)
                 loss_item_array.append(loss.item())
 
-                loss.backward()
+                loss.backward(retain_graph=True)
                 self.optimizer.step()
                 t.update(1)
         t.close()
@@ -139,7 +143,8 @@ class PPOStrategy(ReinforcementLearningStrategy):
         save_loss(loss_item_array)
         self.actor_experience_store = []
         self.update_exploration_rate()
-
+        if half_batch_size:
+            self.batch_size = int(self.batch_size*2)
 
     def calc_loss(self, states, actions, log_probs_old, advantages, returns):
         """
@@ -262,11 +267,11 @@ class PPOStrategy(ReinforcementLearningStrategy):
 
                 self.actor_experience_store.append(
                     (
-                        states[t].detach(),
+                        states[t],
                         actions[t].detach(),
                         log_probs[t].detach(),
                         rewards[t],
-                        new_states[t].detach(),
+                        new_states[t].detach().cpu(),
                         advantage.detach().cpu(),
                         returns
                     )
