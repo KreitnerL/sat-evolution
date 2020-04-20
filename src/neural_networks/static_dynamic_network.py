@@ -15,7 +15,7 @@ NUM_DIMENSIONS = ProblemInstanceEncoding.NUM_DIMENSIONS
 T = torch.Tensor
 torchMax = lambda *x: torch.max(*x)[0]
 
-class SAT_network(nn.Module):
+class Static_Dynamic_Network(nn.Module):
     """
     This network can process features of different sized dimensions without broadcasting, leading to memory efficency.
     The outputs are a 2D tensor actor ouput and a 0D tensor as critic output. The overall structure is as follows: \n

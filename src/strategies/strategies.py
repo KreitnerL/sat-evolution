@@ -15,7 +15,7 @@ from torch.distributions.binomial import Binomial
 from torch.distributions.normal import Normal
 from neural_networks.feature_collection import Feature_Collection
 
-from neural_networks.sat_network import SAT_network
+from neural_networks.static_dynamic_network import Static_Dynamic_Network
 from reinforcement.ppo import PPOStrategy
 from strategies.strategy import Strategy
 
@@ -48,7 +48,7 @@ class IndividualMutationControl(PPOStrategy):
 
         num_output_channels = 2
 
-        network = SAT_network(
+        network = Static_Dynamic_Network(
             encoding_strategy.num_channels(),
             num_output_channels,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -133,7 +133,7 @@ class GeneMutationControl(PPOStrategy):
 
         num_output_channels = 2
 
-        network = SAT_network(
+        network = Static_Dynamic_Network(
             encoding_strategy.num_channels(),
             num_output_channels,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
@@ -220,7 +220,7 @@ class FitnessShapingControl(PPOStrategy):
 
         num_output_channels = 1
 
-        network = SAT_network(
+        network = Static_Dynamic_Network(
             encoding_strategy.num_channels(),
             num_output_channels,
             dim_elimination_max_pooling=dim_elimination_max_pooling,
