@@ -37,11 +37,11 @@ class EncodingStrategy(ABC):
 
 
 class ProblemInstanceEncoding(EncodingStrategy):
-
+    """
+    This encoding strategy is used to collect all necessary input features transform them to achieve common structure.
+    Encoded features will all have the form [B,C,*], where B = Batch size, C = Channel size, * = other dimensions.
+    """
     NUM_DIMENSIONS=4
-    """
-    Improved encoding strategy to be used for the 3SAT problem.
-    """
     def encode(self, population: Population, generations_left, memory: List[torch.Tensor] = None) -> Feature_Collection:
         """
         :returns: Feature_Collection with all relevant features in the form of [B,C,P,E,G,G].\n

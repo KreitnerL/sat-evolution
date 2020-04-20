@@ -7,7 +7,7 @@ from typing import List, Tuple
 class Feature_Collection:
     """
     Wrapper class for a dictionary of different sized Tensors.
-    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xE.
+    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xG.
     Each Tensor has the form BxCxPxGxE, the variables being:\n
     B: Batchsize \n
     C: Channelsize \n
@@ -94,7 +94,7 @@ class Feature_Collection:
         """
         Returns a copy of the given state by cloning all stored Tensors
         """
-        return self.apply_fn(lambda array: array.clone().detach())
+        return self.apply_fn(lambda array: array.clone())
 
     def to_cuda_variable(self) -> Feature_Collection:
         """
@@ -132,6 +132,7 @@ class Feature_Collection:
                     self.input_streams[code] = torch.cat([self.input_streams[code], value], 1)
                 else:
                     self.input_streams[code] = value
+        return self
 
 def concat(feature_collections: List[Feature_Collection]) -> Feature_Collection:
     """

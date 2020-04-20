@@ -141,9 +141,7 @@ class SAT_network(nn.Module):
 
         # Calculate memory(t+1)
         if self.memory_output:
-            memory_t = self.memory_output(practical_state)
-            memory_t.addAll(theoretical_state)
-            memory_t = memory_t.apply_fn(torch.tanh).cpu()
+            memory_t = self.memory_output(practical_state).addAll(theoretical_state).apply_fn(torch.tanh).cpu()
 
         # detach memory for truncated backpropagation through time
         return (action_distributions, values) + tuple(memory_t.values())

@@ -19,7 +19,7 @@ conv_map = {
 
 class Pool_conv_sum_nonlin_pool(nn.Module):
     """
-    Submodule that takes different sized feature tensors and applies pooling, convolution, summing with broadcasting, a non-linearity and pooling.
+    Submodule that takes different sized feature tensors and applies prior pooling, convolution, summing with broadcasting, a non-linearity and pooling, where both poolings are optional.
     All features are convoluted by their very own conv-layer, so that they do not have to be concatenated, yielding a more memory efficent implementation.
     """
 
@@ -29,14 +29,16 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         num_output_channels: int, 
         output_stream_codes: List[int] = None,
         eliminate_dimension: Tuple[int] = tuple([0]*NUM_DIMENSIONS),
+        prior_pooling: bool = False,
         activation_func: type(F.leaky_relu) = F.leaky_relu,
         global_pool_func: type(torchMax) = torchMax):
         """
         Generates a submodule that can take a Feature_Collection (list of features) with the given feature dimensions and returns either a concatenated tensor or a Feature_Collection.
         :param num_input_channels: Dictionary that assigns a number of channels to each input code
-        :param num_output_channels: Dictionary that assigns a number of output channels to each input code
-        :param output_stream_codes: List of codes that fixates the dimension of the output tensors. If not set, the network will return the same input dimensions as the input
+        :param num_output_channels: number of output channels
+        :param output_stream_codes: List of codes that fixate the dimension of the output tensors. If not set, the network will return the same input dimensions as the input
         :param eliminate_dimension: Boolean tupel that encodes for each dimension whether it should be removed
+        :param prior_pooling: True if one wants to extract global features for each input tensor
         :param activation_func: Activation function used as non-linearity
         :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
         """
@@ -45,7 +47,8 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
         if sum(eliminate_dimension) > 0:
             num_input_channels = dict.fromkeys({tuple(1*np.greater(code, eliminate_dimension)) for code in num_input_channels}, list(num_input_channels.values())[0])
         # Calculate all sub stream codes per input
-        self.input_stream_codes = {code: get_input_stream_codes(code) for code in num_input_channels.keys()}
+        self.prior_pooling = prior_pooling
+        self.input_stream_codes = {code: self.get_input_stream_codes(code) for code in num_input_channels.keys()}
         self.output_stream_codes = output_stream_codes if output_stream_codes is not None else self.input_stream_codes.keys()
         self.activation_func = activation_func
         self.global_pool_func = global_pool_func
@@ -132,12 +135,12 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
             raise ValueError(str(a) + ' != ' + str(b))
 
 
-def get_input_stream_codes(input_code: Tuple[int]) -> List[Tuple[int]]:
+    def get_input_stream_codes(self, input_code: Tuple[int]) -> List[Tuple[int]]:
         """
         Calculates all input streams, the given input devides into and returns their encodings.
         :param input_code: the encoding of the input stream
         """
-        if sum(input_code) <= 1:
+        if sum(input_code) <= 1 or not self.prior_pooling:
             return [input_code+input_code]
 
         def _constraints(code: Tuple[int]) -> bool:
@@ -149,6 +152,9 @@ def get_input_stream_codes(input_code: Tuple[int]) -> List[Tuple[int]]:
         return list(map(lambda x: input_code + x, filter(_constraints, itertools.product((0,1), repeat=len(input_code)))))
 
 def get_full_shape(code: Tuple[int], shape: Tuple[int]) -> List[int]:
+    """
+    Given the code of and the squeezed shape of a tensor, returns the full shape of said tensor before it was squeezed.
+    """
     s = list(shape[:2])
     i = 2
     for dim in code:
