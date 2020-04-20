@@ -39,14 +39,9 @@ class Solution(object):
         Performs mutation (flip value) using the supplied probabilty. \n
         If per_gene is set, assumes probability is an array that contains mutation rates for each variable
         """
-        if per_gene:
-            for i in range(0, self.cnf.num_variables):
-                if probability[i]:
-                    self.assignments[:,i] = 1-self.assignments[:,i]
-        else:
-            for i in range(0, self.cnf.num_variables):
-                if random.uniform(0,1) < probability:
-                    self.assignments[:,i] = 1-self.assignments[:,i]
+        for i in range(0, self.cnf.num_variables):
+            if random.uniform(0,1) < (probability[i] if per_gene else probability):
+                self.assignments[:,i] = 1-self.assignments[:,i]
 
     def crossover(self, other) -> Solution:
         """

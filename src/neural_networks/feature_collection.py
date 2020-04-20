@@ -4,10 +4,10 @@ from torch import Tensor as T
 from torch.autograd import Variable
 from typing import List, Tuple
 
-class ME_State:
+class Feature_Collection:
     """
     Wrapper class for a dictionary of different sized Tensors.
-    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xE.
+    The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xG.
     Each Tensor has the form BxCxPxGxE, the variables being:\n
     B: Batchsize \n
     C: Channelsize \n
@@ -15,7 +15,7 @@ class ME_State:
     G: Genomesize \n
     E: Equationsize
     """
-    def __init__(self, inputs: List[T] = [], memory: ME_State = None):
+    def __init__(self, inputs: List[T] = [], memory: Feature_Collection = None):
         """
         Creates a new dictionary, that maps every input code to its belonging input.
         :param inputs: A list of tensors of size BxCxPxGxE
@@ -26,7 +26,7 @@ class ME_State:
             self.store(input_stream)
 
     def __str__(self):
-        return 'ME_State: ' + str([array.size() for array in self.values()] + str(self.memory))
+        return 'Feature_Collection: ' + str([array.size() for array in self.values()] + str(self.memory))
 
     def items(self):
         """
@@ -55,7 +55,7 @@ class ME_State:
         """
         return self.input_streams[input_code]
 
-    def getMemory(self) -> ME_State:
+    def getMemory(self) -> Feature_Collection:
         """
         Returns the stored memory.
         """
@@ -73,40 +73,46 @@ class ME_State:
         else:
             self.input_streams[code] = torch.cat([self.input_streams[code], input_stream], 1)
 
-    def storeMemory(self, memory: ME_State):
+    def storeMemory(self, memory: Feature_Collection):
         """
-        Sets the memory to the given ME_State
+        Sets the memory to the given Feature_Collection
         :param memory: New memory
         """
         self.memory = memory
 
-    def apply_fn(self, fn) -> ME_State:
+    def apply_fn(self, fn) -> Feature_Collection:
         """
         Returns a copy of the current state with the given function applied to all Tensors in the dictionary (input_streams and memory).
         Be aware, that performing actions that change the size of a Tensor will lead to an inconsistent state!
         """
-        return ME_State(
+        return Feature_Collection(
             [fn(array) if array is not None else None for array in self.values()],
             None if self.memory is None else self.memory.apply_fn(fn)
         )
 
-    def clone(self) -> ME_State:
+    def clone(self) -> Feature_Collection:
         """
         Returns a copy of the given state by cloning all stored Tensors
         """
-        return self.apply_fn(lambda array: array.clone().detach())
+        return self.apply_fn(lambda array: array.clone())
 
-    def to_cuda_variable(self) -> ME_State:
+    def to_cuda_variable(self) -> Feature_Collection:
         """
         Applies the cuda() function to all stored tensors
         """
-        return self.apply_fn(lambda array: Variable(array).cuda())
+        return self.apply_fn(lambda array: array.cuda())
 
-    def detach(self) -> ME_State:
+    def detach(self) -> Feature_Collection:
         """
         Detaches all stored Tensors from the GPU
         """
         return self.apply_fn(lambda array: array.detach())
+
+    def cpu(self) -> Feature_Collection:
+        """
+        Moves all stored Tensors to the CPU
+        """
+        return self.apply_fn(lambda array: array.cpu())
 
     def getCode(self, size: Tuple[int]) -> Tuple[int]:
         """
@@ -115,23 +121,24 @@ class ME_State:
         """
         return tuple(1 if dim>1 else 0 for dim in size[2:])
 
-    def addAll(self, me_state: ME_State) -> ME_State:
+    def addAll(self, feature_collection: Feature_Collection) -> Feature_Collection:
         """
         Adds all input strams of the given state to the dictionary.
-        :param me_state: ME_state which values should be added. Note that memory will be ignored!
+        :param feature_collection: ME_state which values should be added. Note that memory will be ignored!
         """
-        if me_state:
-            for code, value in me_state.items():
+        if feature_collection:
+            for code, value in feature_collection.items():
                 if code in self.input_streams:
                     self.input_streams[code] = torch.cat([self.input_streams[code], value], 1)
                 else:
                     self.input_streams[code] = value
+        return self
 
-def concat(me_states: List[ME_State]) -> ME_State:
+def concat(feature_collections: List[Feature_Collection]) -> Feature_Collection:
     """
     Concatenates the given states by concatenating all Tensors that have the same size on the batch dimension and returns the resulting state.
-    :param me_states: list of ME_States
+    :param feature_collections: list of Feature_Collections
     """
-    inputs_array = list(zip(*tuple([me_state.values() for me_state in me_states])))
-    memory_array = [me_state.getMemory() for me_state in me_states if me_state.getMemory() is not None]
-    return ME_State([torch.cat(inputs, 0) for inputs in inputs_array], None if not memory_array else concat(memory_array))
+    inputs_array = list(zip(*tuple([feature_collection.values() for feature_collection in feature_collections])))
+    memory_array = [feature_collection.getMemory() for feature_collection in feature_collections if feature_collection.getMemory() is not None]
+    return Feature_Collection([torch.cat(inputs, 0) for inputs in inputs_array], None if not memory_array else concat(memory_array))

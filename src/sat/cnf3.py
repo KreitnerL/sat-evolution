@@ -18,6 +18,7 @@ class CNF3(object):
         with open(path) as f:
             self.parseInputFile(f)
         self.participation = np.bitwise_or(self.mat[0], self.mat[1])
+        self.zeros = np.zeros(self.num_variables)
 
     def parseInputFile(self, f: TextIOWrapper):
         """
@@ -48,7 +49,6 @@ class CNF3(object):
                     self.mat[0][clause_index][var_index-1] = 1
                 else:
                     self.mat[1][clause_index][-var_index-1] = 1
-
             clause_index += 1
 
     def evaluate(self, solution: np.ndarray, get_additional_properties=False) -> Tuple[np.ndarray]:
@@ -74,10 +74,10 @@ class CNF3(object):
         if get_additional_properties:
             make_value = np.array([self.participation[clause] for clause in range(self.num_clauses) if τ_satisfied_clauses[clause] == 0]).sum(0)
             if not isinstance(make_value, list):
-                make_value = np.zeros(self.num_variables)
-            break_value = np.array([self.participation[clause] for clause in range(self.num_clauses) if τ_satisfied_clauses[clause] == 1]).sum(0)
+                make_value = self.zeros
+            break_value = np.array([result2D[clause] for clause in range(self.num_clauses) if τ_satisfied_clauses[clause] == 1]).sum(0)
             if not isinstance(break_value, list):
-                make_value = np.zeros(self.num_variables)
+                break_value = self.zeros
             
             
         return satisfied, τ_satisfied_clauses, make_value, break_value
