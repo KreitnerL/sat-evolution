@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-from neural_networks.feature_collection import Feature_Collection
-from neural_networks.pool_conv_sum_nonlin_pool import Pool_conv_sum_nonlin_pool, get_full_shape
-from collections import Counter
+from typing import List
 import torch.nn.functional as F
 T = torch.Tensor
 torchMax = lambda *x: T.max(*x)[0]
@@ -16,85 +14,54 @@ conv_map = {
 
 class Message_Passing_Core(nn.Module):
     """
-    Updates the literal and clause embeddings by using a messaging system that combines the approach from https://arxiv.org/abs/1903.04671 and https://arxiv.org/abs/1711.08028.
+    Updates the literal and clause embeddings by using a messaging system as described by https://arxiv.org/abs/1903.04671.
     Consider the SAT problem as a bidirectional graph where each literal (polarity matters) and each clause is a node. There is an edge between literal l and clause c if c inherits l.
-    Every node maintains an embedding of size d that is iteratively refined at each time step. Every step, all clauses receive a messsage of size d from their neighboring literals 
+    Every node maintains an embedding of that is iteratively refined at each time step. Every step, all clauses receive a messsage of size d_c from their neighboring literals 
     and update their embeddings. 
-    Then, all literals receives a message of size d from their neighboring clauses, as well as the embedding of their complement and update their embedding accordingly. The network learns
-    which messages to send and how to precess them.
+    Then, all literals receives a message of size d_l from their neighboring clauses, as well as the embedding of their complement and update their embedding accordingly. 
+    Finally the global embedding is refined by takiing all clause and literal embeddings into account.
+    The network learns which messages to send and how to precess them.
     """
-    def __init__(
-        self, 
-        adjacency_matrix: T,
-        literal_embedding_key: tuple,
-        clause_embedding_key: tuple,
-        literal_embedding_size,
-        clause_embedding_size,
-        global_embedding_size,
-        additional_information_size: dict = dict(),
-        activation_func: type(F.relu) = F.relu,
-        global_pool_func: type(torchMax) = torchMax):
+    def __init__( self, literal_embedding_size, clause_embedding_size, global_embedding_size):
         """
-        :param adjacency_matrix: adjacency matrix between literals and clauses. Tensor of size Ex2G where E = #clauses, G = #variables, respectively
-        :param embedding_size: the size of the embedding for the literal and clause tensors, i.e. the number of channels
-        :param additional_information_size: dictionary storing the code and number of channels for all additional features that are used by the update gates
-        :literal_embedding_key: code of the literal_embedding
-        :clause_embedding_key: code of the clause_embedding
-        :param activation_func: Activation function used as non-linearity
-        :param global_pool_func: Pooling function used to reduce the sum to the output dimensions
+        :param literal_embedding_size: size of the literal node embeddings
+        :param clause_embedding_size: size of the clause node embeddings
+        :param global_embedding_size: size of the global embedding
         """
         super().__init__()
-        self.A = adjacency_matrix
-        self.A_t = adjacency_matrix.t()
-        self.literal_embedding_key = literal_embedding_key
-        self.clause_embedding_key = clause_embedding_key
-        self.global_embedding_key = tuple([1]+[0]*(len(literal_embedding_key)-1))
-
         # Literal message layer
-        self.L_msg = conv_map[sum(literal_embedding_key)](literal_embedding_size, clause_embedding_size, 1)
+        self.L_msg = nn.Conv1d(literal_embedding_size, clause_embedding_size, 1)
         # Clause message layer
-        self.C_msg = conv_map[sum(clause_embedding_key)](clause_embedding_size, literal_embedding_size, 1)
+        self.C_msg = nn.Conv1d(clause_embedding_size, literal_embedding_size, 1)
 
         # Literal update layer
-        self.L_u = Pool_conv_sum_nonlin_pool(
-            num_input_channels = Counter({literal_embedding_key: 3*literal_embedding_size}) + Counter(additional_information_size),
-            num_output_channels = literal_embedding_size,
-            output_stream_codes = [literal_embedding_key]
-        )
+        self.L_u = nn.Sequential(nn.Conv1d(3*literal_embedding_size, literal_embedding_size, 1), nn.LeakyReLU(inplace=True))
         # Clause update layer
-        self.C_u = Pool_conv_sum_nonlin_pool(
-            num_input_channels = Counter({clause_embedding_key: 2*clause_embedding_size}) + Counter(additional_information_size),
-            num_output_channels = clause_embedding_size,
-            output_stream_codes = [clause_embedding_key]
-        )
+        self.C_u = nn.Sequential(nn.Conv1d(2*clause_embedding_size, clause_embedding_size, 1), nn.LeakyReLU(inplace=True))
+        # Global update layer
+        self.U_u = nn.Sequential(nn.Conv1d(literal_embedding_size + clause_embedding_size + global_embedding_size, global_embedding_size, 1), nn.LeakyReLU(inplace=True))
 
-        self.G_u = Pool_conv_sum_nonlin_pool(
-            num_input_channels = Counter({self.global_embedding_key: literal_embedding_size + clause_embedding_size + global_embedding_size}) + Counter(additional_information_size),
-            num_output_channels = global_embedding_size,
-            output_stream_codes = [self.global_embedding_key]
-        )
-
-    def forward(self, L_t, C_t, U_t, additional_information: Feature_Collection = None):
+    def forward(self, L_t, C_t, U_t, adjacency_matrix):
         """
-        :param l_t: 
+        :param L_t: Literal embeddings
+        :param C_t: Clause embeddings
+        :param U_t: Global embedding
+        :param Adjacency matrix
         """
-        # Providing "static" additional information every time helps the network to focus solely on the messages instead of trying to remember the input.
-        C_shape = get_full_shape(self.clause_embedding_key, C_t.shape)
-        L_shape = get_full_shape(self.literal_embedding_key, L_t.shape)
-        C_U_shape = get_full_shape(self.global_embedding_key, C_t.shape)
-        L_U_shape = get_full_shape(self.global_embedding_key, L_t.shape)
-        U_shape = get_full_shape(self.global_embedding_key, U_t.shape)
+        self.A = adjacency_matrix
+        self.A_t = adjacency_matrix.t()
 
         # Update clauses with messages from neighboring literals
         M_l = self.L_msg(L_t) @ self.A_t
        # Update clauses with messages from neighboring literals
-        C_t_new = self.C_u(Feature_Collection([C_t.view(C_shape), M_l.view(C_shape)]).addAll(additional_information), pool=False)
+        C_t_new = self.C_u(torch.cat([C_t, M_l],1))
 
         # Update literals with messages from neighboring clauses and their complements
         M_c = self.C_msg(C_t_new) @ self.A
-        L_t_new = self.L_u(Feature_Collection([L_t.view(L_shape), M_c.view(L_shape), flip(L_t, 2).view(L_shape)]).addAll(additional_information), pool=False)
+        L_t_new = self.L_u(torch.cat([L_t, M_c, flip(L_t, 2)],1))
 
-        U_t_new = self.G_u(Feature_Collection([L_t_new.sum(-1).view(L_U_shape), C_t_new.sum(-1).view(C_U_shape), U_t.view(U_shape)]).addAll(additional_information), pool=False)
+        # Update global embedding with embeddings from clauses and literals
+        U_t_new = self.U_u(torch.cat([L_t_new.sum(-1, keepdim=True), C_t_new.sum(-1, keepdim=True), U_t],1))
         return L_t_new, C_t_new, U_t_new
 
 def flip(A: T, dim):
@@ -120,15 +87,10 @@ if __name__ == "__main__":
     literal_embedding_size = 80
     clause_embedding_size = 60
     global_embedding_size = 5
-    test = Message_Passing_Core(
-        adjacency_matrix = T(E,2*G), 
-        literal_embedding_key=(1,0,0,1), 
-        clause_embedding_key=(1,1,0,0),
-        literal_embedding_size=literal_embedding_size,
-        clause_embedding_size=clause_embedding_size,
-        global_embedding_size=global_embedding_size)
+    test = Message_Passing_Core(literal_embedding_size, clause_embedding_size, global_embedding_size)
     l_t = T(1,literal_embedding_size, 10, 2*G)
     c_t = T(1,clause_embedding_size, 10, E)
     u_t = T(1,global_embedding_size,10)
-    l_t_new, c_t_new, u_t_new = test(l_t, c_t, u_t, None)
+    A = T(E,2*G)
+    l_t_new, c_t_new, u_t_new = test(l_t, c_t, u_t, A)
     print(l_t_new.shape, c_t_new.shape, u_t_new.shape)
