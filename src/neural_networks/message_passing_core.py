@@ -41,15 +41,14 @@ class Message_Passing_Core(nn.Module):
         # Global update layer
         self.U_u = nn.Sequential(nn.Conv1d(literal_embedding_size + clause_embedding_size + global_embedding_size, global_embedding_size, 1), nn.LeakyReLU(inplace=True))
 
-    def forward(self, L_t, C_t, U_t, adjacency_matrix):
+    def forward(self, L_t, C_t, U_t, A, A_t):
         """
         :param L_t: Literal embeddings
         :param C_t: Clause embeddings
         :param U_t: Global embedding
-        :param Adjacency matrix
+        :param A: Adjacency matrix
+        :param A_t: Adjacency matrix transponed
         """
-        self.A = adjacency_matrix
-        self.A_t = adjacency_matrix.t()
 
         # Update clauses with messages from neighboring literals
         M_l = self.L_msg(L_t) @ self.A_t
