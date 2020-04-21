@@ -72,7 +72,7 @@ solverMap = {
 }
 encoder = ProblemInstanceEncoding()
 
-def start(type, solver_arg, outdir, weightsdir, start_at):
+def start(training, solver_arg, outdir, weightsdir, start_at):
     hyperparamter = encoder.get_hyperparamter()
     if solver_arg == 'vanila':
         solver = VanilaSolver(population_size, 0.05)
@@ -83,7 +83,10 @@ def start(type, solver_arg, outdir, weightsdir, start_at):
             print("loading baseline")
             solver.load_weights(weightsdir + "baseline")
         solver.set_evaluation_function(lambda population : population.evaluate(get_unsatisfied=True))
-        if start_at is not None:
-                train_solver(solver, outdir, int(start_at))
+        if training:
+            if start_at is not None:
+                    train_solver(solver, outdir, int(start_at))
+            else:
+                train_solver(solver, outdir)
         else:
-            train_solver(solver, outdir)
+            validate_solver(solver, outdir)

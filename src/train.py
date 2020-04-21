@@ -26,4 +26,4 @@ if len(sys.argv) > 3:
 if len(sys.argv) > 4:
     start_at = sys.argv[4]
 
-start(False, solver_arg, outdir, weightsdir, start_at)
+start(True, solver_arg, outdir, weightsdir, start_at)

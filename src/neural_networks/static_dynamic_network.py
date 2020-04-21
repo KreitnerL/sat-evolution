@@ -136,7 +136,7 @@ class Static_Dynamic_Network(nn.Module):
         pool_func = torchMax if self.dim_elimination_max_pooling else T.mean
         action_critic = self.output_layer_actor_critic(practical_state, pool=False, pool_func=pool_func)
         action_distributions, values = action_critic.narrow(1,0, self.num_output_channels), action_critic.narrow(1,self.num_output_channels-1, self.num_output_channels)
-        for dim in range(len(self.eliminate_dimension)-sum(self.eliminate_dimension)+1):
+        while(values.dim()>1):
             values = values.sum(-1)
 
         # Calculate memory(t+1)
