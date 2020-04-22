@@ -3,7 +3,7 @@
 
 ## Introduction
 This project is an attempt to use Deep Reinforcement Learning together with a genetic algorihm to improve state of the art solvers for the boolean satisfiability problem.
-The code is mostly based on the source code of "Learning to Evolve, Jan Schuchardt, Vladimir Golkov, Daniel Cremers [2019]" and the previous work from Yoav Schneider.
+The code is based on the source code of "Learning to Evolve, Jan Schuchardt, Vladimir Golkov, Daniel Cremers [2019]" and the previous work from Yoav Schneider.
 The project also contains code that was used for a previous approach that differs heavily from the new approach you can see on the latest presentations slides from 2020. 
 The old approach focused on using simple Genetic Algorithms to modify the current solution for a problem. One can think of it as WalkSAT approach. This strategy however has major drawbacks as discussed in the presentation slides and is therefore not really relevant anymore.
 Nevertheless, the code may still serve as a reference for future development and thus is still included in the code base.
@@ -116,4 +116,9 @@ Whe now can assign to each stream a unique `code` that is derived from its size:
 Leaving out the Batch and Channels dimension, there is a 1 for each dimension that is bigger than 1 and a 0 otherwise. So from looking at (0,1,1) we know it does not have the P dim, but does have the E and G dim. If we have another feature of the same size we can add it to our `Feature_Collection` and it will automatically be concatenated with the existing stream of this size. The encoding scheme can be set in `src/solvers/encoding.py`.
 
 # Future Work
-See _future work_ section of the slides.
+See _future work_ section of the slides for the discussion and theoretical background. Here is a list of things that have to be implemented while working towards the new approach:
+- Implement CDCL sat solver such as MiniSAT
+- Create a new evolution strategy that creates new individual given the netowork output
+- Adapt the algorithm to allow queries to the NN to guide the algorithm
+- Train and tune hyperparamters
+- Optimize code for runtime
