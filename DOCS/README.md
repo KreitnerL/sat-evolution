@@ -94,5 +94,26 @@ The validation outputs the average maximum fitness at each generation to a text 
 - `weights directory`: (Optional) Path to the baseline file that can be used to initialize the the network with previously trained weights. 
 - `start index`: (Optional) Integer that specifies to start at a specific round of training. Default is 0.
 
+## Note for the implementation:
+When you check the code in `/neural_networks/` you will find that instead of a single input tensor we often use a so called Feature_Collection. This is wrapper class to manage multiple different sized tensors. The need for such a class originated in the implementation process of a the memory efficient conv layer (`pool_conv_sum_nonlin_pool.py`). Instead of concatenating all input features with broadcasting and then use convolution, we only concatenate feature streams of the same dimensionality. Then we appy convolution to each input stream seperately. Only after this we sum them together with broadcasting. This is a more efficent way of extracting features than having a single big tensor. To simplify the handling with these multiple features we introduce a new system, which will be discribed in the following.
+
+Let an `input_stream` be the Tensor itself. A `Feature_Collection` manages a dictionary mapping so called `input_codes` to their respective `input_stream`. Let us imagine the following scenario:
+For our input we need a population dimension P, an equation dim E and a genome dim G. That means that if we were to combine our features along the channels dimension in a single tensor, it would be of size BxCxPxExG, where B and C are the Batch and the Channels dimension, respectively. But now consider that we have 3 input streams:
+- stream_1: 2xPxG
+- stream_2: 5xP
+- stream_3: 1xExG
+
+where the letters behind each name stand for their respective size. Let`s normalize them to the above mentioned form of BxCxPxExG:
+- stream_1: 1x2xPxGx1
+- stream_2: 1x5xPx1x1
+- stream_3: 1x1x1xExG
+
+Whe now can assign to each stream a unique `code` that is derived from its size:
+- stream_1: (1,1,0)
+- stream_2: (1,0,0)
+- stream_3: (0,1,1)
+
+Leaving out the Batch and Channels dimension, there is a 1 for each dimension that is bigger than 1 and a 0 otherwise. So from looking at (0,1,1) we know it does not have the P dim, but does have the E and G dim. If we have another feature of the same size we can add it to our `Feature_Collection` and it will automatically be concatenated with the existing stream of this size. The encoding scheme can be set in `src/solvers/encoding.py`.
+
 # Future Work
 See _future work_ section of the slides.
