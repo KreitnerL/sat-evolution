@@ -51,12 +51,12 @@ class Message_Passing_Core(nn.Module):
         """
 
         # Update clauses with messages from neighboring literals
-        M_l = self.L_msg(L_t) @ self.A_t
+        M_l = self.L_msg(L_t) @ A_t
        # Update clauses with messages from neighboring literals
         C_t_new = self.C_u(torch.cat([C_t, M_l],1))
 
         # Update literals with messages from neighboring clauses and their complements
-        M_c = self.C_msg(C_t_new) @ self.A
+        M_c = self.C_msg(C_t_new) @ A
         L_t_new = self.L_u(torch.cat([L_t, M_c, flip(L_t, 2)],1))
 
         # Update global embedding with embeddings from clauses and literals

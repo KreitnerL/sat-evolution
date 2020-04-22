@@ -27,7 +27,7 @@ class Encode_Process_Decode(nn.Module):
     def __init__(
         self,
         embeddings: List[tuple],
-        additional_information: dict = dict()):
+        additional_information: dict = Counter()):
         """
         :param embeddings: List of tupels containing code and embedding size for literals, clauses and global state
         :param additional_information: dictionary mapping codes of input features to their respective channel size
@@ -50,6 +50,7 @@ class Encode_Process_Decode(nn.Module):
             global_embedding_size = embeddings[2][1]
         )
 
+        d = Counter(dict(embeddings)) + additional_information
         self.decoder_a = Pool_conv_sum_nonlin_pool(
             num_input_channels=Counter(dict(embeddings)) + additional_information,
             num_output_channels=1,
@@ -73,11 +74,11 @@ class Encode_Process_Decode(nn.Module):
         :param adjacency_matrices: adjacency matrix of the graph network for each individual
         :param additional_information: Feature_Collection of all additional features relevant for decoding
         """
-        i = 0
         actions = []
         values = 0
-        for L, C, U in population_embeddings:
-            A = adjacency_matrices[i]
+        for individual in range(len(population_embeddings)):
+            L, C, U = population_embeddings[individual]
+            A = adjacency_matrices[individual]
             A_t = A.t()
             # Encode
             L = self.encoder[0](L)
@@ -90,14 +91,16 @@ class Encode_Process_Decode(nn.Module):
             
             l_shape = L.shape
             L = L.view(get_full_shape(self.literal_code, L.shape))
-            C = L.view(get_full_shape(self.clause_code, C.shape))
-            U = L.view(get_full_shape(self.global_code, U.shape))
+            C = C.view(get_full_shape(self.clause_code, C.shape))
+            U = U.view(get_full_shape(self.global_code, U.shape))
             
             # Decode
-            action = self.decoder_a(Feature_Collection([L,C,U]).addAll(additional_information)).view(l_shape)
+            action = self.decoder_a(Feature_Collection([L,C,U]).addAll(additional_information)).get(self.literal_code).squeeze()
+            if action.dim == 1:
+                action = action.unsqueeze(0)
             value: T = self.decoder_c(Feature_Collection([L,C,U]).addAll(additional_information), pool=False)
             while(value.dim()>1):
-                value=sum(-1)
+                value = value.sum(-1)
             
             actions.append(action)
             values = values + value
@@ -109,3 +112,21 @@ def getNumberParams(network):
     for p in network.parameters():
         num_params += p.data.view(-1).size(0)
     return num_params
+
+
+if __name__ == "__main__":
+    # Usage example. Note that you cannot run this in this in this file, because the dependencies will not be loaded correctly.
+    embeddings = [((0,0,1), 80), ((0,1,0), 60), ((0,0,0), 10)]
+    network = Encode_Process_Decode(embeddings)
+
+    P = 10
+    population = []
+    adjacency_matrices = []
+    for i in range(P):
+        G = 10 + i
+        E = 70 + i
+        population.append((torch.ones(1,80,2*G), torch.ones(1,60,E), torch.ones(1,10,1)))
+        adjacency_matrices.append(torch.ones(E,2*G))
+
+    new_p = network(population, adjacency_matrices, 5)
+    print('done')
