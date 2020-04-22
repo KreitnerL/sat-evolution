@@ -68,14 +68,14 @@ solverMap = {
     'individual': SolverWithIndividualMutationControl,
     'crossover': SolverWithFitnessShapingCrossover,
     'selection': SolverWithFitnessShapingSelection,
-    'vanila': VanilaSolver
+    'vanilla': VanillaSolver
 }
 encoder = ProblemInstanceEncoding()
 
 def start(training, solver_arg, outdir, weightsdir, start_at):
     hyperparamter = encoder.get_hyperparamter()
-    if solver_arg == 'vanila':
-        solver = VanilaSolver(population_size, 0.05)
+    if solver_arg == 'vanilla':
+        solver = VanillaSolver(population_size, 0.05)
     else:
         solver = solverMap.get(solver_arg, None)(encoder, population_size, num_neurons = hyperparamter["NUM_NEURONS"], num_hidden_layers=hyperparamter["NUM_HIDDEN_LAYERS"], learning_rate=hyperparamter["LEARNING_RATE"])
     if solver is not None:

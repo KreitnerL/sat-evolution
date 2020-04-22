@@ -248,7 +248,7 @@ class SolverWithFitnessShapingSelection(SatSolver):
         self.population.mutate(np.repeat(0.05, self.population_size))
         self.evaluate_and_reward(generations_left)
 
-class VanilaSolver(SatSolver):
+class VanillaSolver(SatSolver):
     '''
     Solver without a network that performs the standard genetic algorithm and local search with fixed parameters
      '''
