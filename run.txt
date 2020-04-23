@@ -1,5 +1,0 @@
-/usr/prakt/w0060/.conda/envs/my_env/bin/python src/train.py crossover solution/crossover_32_5/
-
-ssh w0060@atcremers55.informatik.tu-muenchen.de -p 58022
-
-screen -S crossover_32_5

@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 
 def plot_loss(filename, title):
-    with open("c:/Users/Gamer/Desktop/" + filename + ".txt", "r") as f:
+    with open(filename + ".txt", "r") as f:
         losses = []
         for line in f:
             if line == "":
@@ -17,34 +17,52 @@ def plot_loss(filename, title):
     plt.ylabel('Loss', fontsize=18)
     plt.title(title, fontsize=26)
     plt.gcf().set_size_inches(16, 12)
-    plt.savefig("c:/Users/Gamer/Desktop/loss.png")
+    plt.savefig("loss.png")
 
-def plot_rate(filename, title):
-    with open("c:/Users/Gamer/Desktop/" + filename + ".txt", "r") as f:
-        mark_every = 100
-        solved = []
-        solved_in = []
-        generation = []
-        batch = []
-        for line in f:
-            if line == "" or line == "\n":
-                continue
-            if int(line) >= 0:
-                batch.append(1)
-                generation.append(int(line))
-            else:
-                batch.append(0)
-                generation.append(512)
-            if len(batch) == mark_every:
-                solved.append(sum(batch)/mark_every)
-                solved_in.append(sum(generation)/mark_every)
-                generation.clear()
-                batch.clear()
-        if len(batch)>0:
-            print(sum(batch), len(batch))
-            solved.append(sum(batch)/len(batch))
-            solved_in.append(sum(generation)/len(generation))
-        f.close()
+def read_file(filename: str):
+    try:
+        ret = []
+        with open(filename + ".txt", "r") as f:
+            for line in f:
+                if line == "" or line == "\n":
+                    continue
+                ret.append(int(line))
+        return ret
+    except IOError as identifier:
+        return None
+
+def plot_rate(title):
+    rate = []
+    index = 0
+    while True:
+        r = read_file(str(index))
+        if r is not None:
+            rate.extend(r)
+            index += 1
+        else:
+            break
+
+    mark_every = 100
+    solved = []
+    solved_in = []
+    generation = []
+    batch = []
+    for gen in rate:
+        if gen >= 0:
+            batch.append(1)
+            generation.append(gen)
+        else:
+            batch.append(0)
+            generation.append(512)
+        if len(batch) == mark_every:
+            solved.append(sum(batch)/mark_every)
+            solved_in.append(sum(generation)/mark_every)
+            generation.clear()
+            batch.clear()
+    if len(batch)>0:
+        print(sum(batch), len(batch))
+        solved.append(sum(batch)/len(batch))
+        solved_in.append(sum(generation)/len(generation))
 
     plt.subplots(3, 1)
     plt.subplot(2,1,1)
@@ -60,8 +78,7 @@ def plot_rate(filename, title):
     plt.xlabel('Per iteration', fontsize=18)
     plt.ylabel('Average generation', fontsize=18)
     plt.gcf().set_size_inches(16, 12)
-    plt.savefig("c:/Users/Gamer/Desktop/rate.png")
-
+    plt.savefig("rate.png")
 
 loss_dir = None
 
@@ -83,6 +100,6 @@ def save_loss(loss_array: list):
     f.close()
 
 if __name__ == "__main__":
-    title = 'Crossover 1HL 32N lr=5e-6'
+    title = 'ARCHITECTURE DETAILS'
     plot_loss("loss", title)
-    plot_rate("rate", title)
+    plot_rate(title)
