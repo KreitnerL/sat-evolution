@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from typing import List
 import torch.nn.functional as F
+from neural_networks.utils import getNumberParams
 T = torch.Tensor
 torchMax = lambda *x: T.max(*x)[0]
 
@@ -16,10 +17,10 @@ class Message_Passing_Core(nn.Module):
     """
     Updates the literal and clause embeddings by using a messaging system as described by https://arxiv.org/abs/1903.04671.
     Consider the SAT problem as a bidirectional graph where each literal (polarity matters) and each clause is a node. There is an edge between literal l and clause c if c inherits l.
-    Every node maintains an embedding of that is iteratively refined at each time step. Every step, all clauses receive a messsage of size d_c from their neighboring literals 
-    and update their embeddings. 
-    Then, all literals receives a message of size d_l from their neighboring clauses, as well as the embedding of their complement and update their embedding accordingly. 
-    Finally the global embedding is refined by takiing all clause and literal embeddings into account.
+    Every node maintains an embedding that is iteratively refined at each time step:
+    Every step, all clauses receive a messsage of size d_c from their neighboring literals 
+    and update their embeddings. Then, all literals receives a message of size d_l from their neighboring clauses, as well as the embedding of their complement and update their embedding accordingly. 
+    Finally the global embedding is refined by taking all clause and literal embeddings into account.
     The network learns which messages to send and how to precess them.
     """
     def __init__( self, literal_embedding_size, clause_embedding_size, global_embedding_size):
@@ -70,13 +71,6 @@ def flip(A: T, dim):
     """
     s = A.shape
     return A.view(*s[:dim],2,int(s[dim]/2),*s[dim+1:]).flip(dim).view(*s[:dim], s[dim], *s[dim+1:])
-
-def getNumberParams(network):
-    num_params = 0
-    for p in network.parameters():
-        num_params += p.data.view(-1).size(0)
-    return num_params
-
 
 if __name__ == "__main__":
     pass

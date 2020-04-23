@@ -1,14 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from neural_networks.utils import getNumberParams
 T = torch.Tensor
 embedding_size=128
-
-def getNumberParams(network):
-    num_params = 0
-    for p in network.parameters():
-        num_params += p.data.view(-1).size(0)
-    return num_params
 
 class NeuroSAT(nn.Module):
     """

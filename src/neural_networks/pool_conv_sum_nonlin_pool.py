@@ -20,7 +20,8 @@ conv_map = {
 class Pool_conv_sum_nonlin_pool(nn.Module):
     """
     Submodule that takes different sized feature tensors and applies prior pooling, convolution, summing with broadcasting, a non-linearity and pooling, where both poolings are optional.
-    All features are convoluted by their very own conv-layer, so that they do not have to be concatenated, yielding a more memory efficent implementation.
+    All features are convoluted by their very own conv-layer, so that they do not have to be concatenated, yielding a more memory efficent implementation. Furthermore, the convolution uses
+    kernel_size = 1 which enforces permutation equivariance.
     """
 
     def __init__(
@@ -61,6 +62,12 @@ class Pool_conv_sum_nonlin_pool(nn.Module):
                 self.layers[str(input_code)] = conv_map[sum(input_code[NUM_DIMENSIONS:])](num_input_channels[input_code[:NUM_DIMENSIONS]], num_output_channels, 1)
 
     def forward(self, feature_collection: Feature_Collection, pool=True, pool_func=None):
+        """
+        Applies pooling, convolution, sum with broadcasting, non-linearity and final (optional) pooling to the given input streams.
+        :param feature_collection: Feature_Collection of all features
+        :param pool: If True, will return a Feature_Collection with the previously defined output streams. If False, will return the full Tensor after the non-linearity. Default is True.
+        :param pool_func: funtion that will be used to do the prior pooling. On default, the global pool function will be used.
+        """
         if not pool_func:
             pool_func = self.global_pool_func
 

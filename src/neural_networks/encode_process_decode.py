@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from neural_networks.feature_collection import Feature_Collection
 from neural_networks.pool_conv_sum_nonlin_pool import Pool_conv_sum_nonlin_pool, get_full_shape
-from neural_networks.utils import init_weights
+from neural_networks.utils import init_weights, getNumberParams
 from neural_networks.message_passing_core import Message_Passing_Core
 from collections import Counter
 from typing import Tuple, List
@@ -22,7 +22,7 @@ conv_map = {
 class Encode_Process_Decode(nn.Module):
     """
     This class implements the encode-process-decode architecture as specified here https://arxiv.org/abs/1806.01261.
-    Given a population of graph encoded SAT problem, it outputs appropiate action distributions per individual as well as a critic value (combined actor-critic model).
+    Given a population of graph encoded SAT problems, it outputs appropiate action distributions per individual as well as a critic value (combined actor-critic model).
     """
     def __init__(
         self,
@@ -50,7 +50,6 @@ class Encode_Process_Decode(nn.Module):
             global_embedding_size = embeddings[2][1]
         )
 
-        d = Counter(dict(embeddings)) + additional_information
         self.decoder_a = Pool_conv_sum_nonlin_pool(
             num_input_channels=Counter(dict(embeddings)) + additional_information,
             num_output_channels=1,
@@ -107,13 +106,6 @@ class Encode_Process_Decode(nn.Module):
 
         return actions, values
 
-def getNumberParams(network):
-    num_params = 0
-    for p in network.parameters():
-        num_params += p.data.view(-1).size(0)
-    return num_params
-
-
 if __name__ == "__main__":
     # Usage example. Note that you cannot run this in this in this file, because the dependencies will not be loaded correctly.
     embeddings = [((0,0,1), 80), ((0,1,0), 60), ((0,0,0), 10)]
@@ -123,6 +115,7 @@ if __name__ == "__main__":
     population = []
     adjacency_matrices = []
     for i in range(P):
+        # Each individual can have a different number of variables / clauses
         G = 10 + i
         E = 70 + i
         population.append((torch.ones(1,80,2*G), torch.ones(1,60,E), torch.ones(1,10,1)))

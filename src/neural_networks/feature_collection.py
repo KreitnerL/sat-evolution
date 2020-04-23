@@ -8,12 +8,6 @@ class Feature_Collection:
     """
     Wrapper class for a dictionary of different sized Tensors.
     The key of each tensor is a tupel encoding the tensors size, e.g. (1,0,1) belongs to a Tensor with size Px1xG.
-    Each Tensor has the form BxCxPxGxE, the variables being:\n
-    B: Batchsize \n
-    C: Channelsize \n
-    P: Populationsize \n
-    G: Genomesize \n
-    E: Equationsize
     """
     def __init__(self, inputs: List[T] = [], memory: Feature_Collection = None):
         """
@@ -42,7 +36,7 @@ class Feature_Collection:
 
     def values(self):
         """
-        Returns all input streams of the dictionary
+        Returns all input streams of the dictionary sorted by their size
         """
         l = list(self.input_streams.values())
         l.sort(key=lambda x: x.size())
@@ -75,8 +69,8 @@ class Feature_Collection:
 
     def storeMemory(self, memory: Feature_Collection):
         """
-        Sets the memory to the given Feature_Collection
-        :param memory: New memory
+        Sets the memory to the given Feature_Collection.
+        :param memory: New memory (overwrite)
         """
         self.memory = memory
 

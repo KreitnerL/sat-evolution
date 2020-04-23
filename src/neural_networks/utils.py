@@ -97,3 +97,12 @@ def init_weights(layer):
         nn.init.xavier_normal_(layer.weight.data)
     if isinstance(layer, nn.Conv1d):
         nn.init.xavier_normal_(layer.weight.data)
+
+def getNumberParams(network):
+    """
+    Returns the number of adjustable parameters of a given network.
+    """
+    num_params = 0
+    for p in network.parameters():
+        num_params += p.data.view(-1).size(0)
+    return num_params
